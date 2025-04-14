@@ -1,24 +1,18 @@
 package client
 
-type UploadStatus string
-
-const (
-	UploadComplete UploadStatus = "upload complete"
-)
-
 type Client struct {
-	file string
-	url                   string
-	uploadedBytesChan chan(int)
-	uploadErrorChan chan (error)
-	uploadStatusChan chan (UploadStatus)
+	filePath          string
+	url               string
+	uploadedBytesChan chan (int)
+	uploadErrorChan   chan (error)
+	uploadStatusChan  chan (struct{})
 }
 
-func NewClient(url string, file []byte) *Client {
-	return &Client{file: file, url: url}
+func NewClient(url string, filePath string) *Client {
+	return &Client{filePath: filePath, url: url}
 }
 
-func (c *Client) Upload(file []byte) error {
+func (c *Client) Upload() error {
 	return nil
 }
 
@@ -26,14 +20,26 @@ func (c *Client) Pause() error {
 	return nil
 }
 
-func (c *Client) UploadedBytesChan() <-chan(int){
+func (c *Client) UploadedBytesChan() <-chan (int) {
 	return c.uploadedBytesChan
 }
 
-func (c *Client) UploadErrorChan() <-chan(error){
+func (c *Client) UploadErrorChan() <-chan (error) {
 	return c.uploadErrorChan
 }
 
-func (c *Client) UploadStatusChan() <- chan (UploadStatus) {
-	return c
+func (c *Client) UploadStatusChan() <-chan (struct{}) {
+	return c.uploadStatusChan
+}
+
+func (c *Client) UploadIsInProgress() bool {
+	return false
+}
+
+func (c *Client) UploadIsCompleted() bool {
+	return false
+}
+
+func (c *Client) UploadIsPaused() bool {
+	return false
 }

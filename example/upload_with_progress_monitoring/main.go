@@ -1,8 +1,14 @@
 package main
 
-import "github.com/grantchen2003/chunky"
+import (
+	"fmt"
+	"log"
+	"time"
 
-func main () {
+	"github.com/grantchen2003/chunky"
+)
+
+func main() {
 	client := chunky.NewClient("http://localhost:8080", "bigfile.txt")
 
 	// Start the upload
@@ -19,14 +25,23 @@ func main () {
 	go func() {
 		for {
 			select {
-			case progress := <-client.ProgressChan:
-				fmt.Println(progress)
-			case err := <-client.ErrorChan:
-				fmt.Println("Error:", err)
-			case status := <-client.StatusChan:
-				fmt.Println("Status:", status)
-				if status == client.Complete {
+			case uploadedBytes := <-client.UploadedBytesChan():
+				fmt.Println(uploadedBytes)
+
+			case uploadError := <-client.UploadErrorChan():
+				fmt.Println("Error:", uploadError)
+
+			case <-client.UploadStatusChan():
+				if client.UploadIsCompleted() {
+					fmt.Println("Upload is in complete")
 					return
+
+				} else if client.UploadIsInProgress() {
+					fmt.Println("Upload is in progress")
+
+				} else if client.UploadIsPaused() {
+					fmt.Println("Upload is in paused")
+
 				}
 			}
 		}
@@ -41,6 +56,6 @@ func main () {
 	if err := client.Upload(); err != nil {
 		log.Println("Error during upload:", err)
 	}
-	
+
 	log.Println("Upload complete!")
 }

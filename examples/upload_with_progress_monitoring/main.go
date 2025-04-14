@@ -11,16 +11,6 @@ import (
 func main() {
 	client := chunky.NewClient("http://localhost:8080", "bigfile.txt")
 
-	// Start the upload
-	go func() {
-		if err := client.Upload(); err != nil {
-			log.Println("Error during upload:", err)
-			return
-		}
-
-		log.Println("Upload complete!")
-	}()
-
 	// Monitor upload progress (optional)
 	go func() {
 		for {
@@ -45,6 +35,16 @@ func main() {
 				}
 			}
 		}
+	}()
+
+	// Start the upload
+	go func() {
+		if err := client.Upload(); err != nil {
+			log.Println("Error during upload:", err)
+			return
+		}
+
+		log.Println("Upload complete!")
 	}()
 
 	// Simulate user pause after 1 seconds

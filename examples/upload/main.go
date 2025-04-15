@@ -10,7 +10,7 @@ import (
 func main() {
 	client := chunky.NewClient("http://localhost:8080", "bigfile.txt")
 
-	client.Upload()
+	go client.Upload()
 
 	for {
 		select {

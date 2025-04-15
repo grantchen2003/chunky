@@ -1,53 +1,40 @@
 package client
 
-type UploadStatus = string
+type UploadStatus int
+
+type UploadProgress struct {
+}
 
 const (
-	UploadComplete UploadStatus = "statusComplete"
+	UploadCompleted UploadStatus = iota
+	UploadStarted
+	UploadIsPaused
+	UploadResumed
 )
 
 type Client struct {
-	filePath          string
-	url               string
-	UploadedBytesChan chan (int)
-	UploadErrorChan   chan (error)
-	UploadStatusChan  chan (UploadStatus)
+	filePath         string
+	url              string
+	ProgressChan     chan (UploadProgress)
+	UploadErrorChan  chan (error)
+	UploadStatusChan chan (UploadStatus)
 }
 
 func NewClient(url string, filePath string) *Client {
-	return &Client{filePath: filePath, url: url}
+	return &Client{
+		filePath:         filePath,
+		url:              url,
+		ProgressChan:     make(chan UploadProgress),
+		UploadErrorChan:  make(chan error),
+		UploadStatusChan: make(chan UploadStatus),
+	}
 }
 
-func (c *Client) Upload() error {
-	return nil
+func (c *Client) Upload() {
 }
 
 func (c *Client) Pause() {
 }
 
 func (c *Client) Resume() {
-}
-
-// func (c *Client) UploadedBytesChan() <-chan (int) {
-// 	return c.uploadedBytesChan
-// }
-
-// func (c *Client) UploadErrorChan() <-chan (error) {
-// 	return c.uploadErrorChan
-// }
-
-// func (c *Client) UploadStatusChan() <-chan (struct{}) {
-// 	return c.uploadStatusChan
-// }
-
-func (c *Client) UploadIsInProgress() bool {
-	return false
-}
-
-func (c *Client) UploadIsCompleted() bool {
-	return false
-}
-
-func (c *Client) UploadIsPaused() bool {
-	return false
 }

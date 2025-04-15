@@ -6,4 +6,4 @@ type Client = client.Client
 
 var NewClient = client.NewClient
 
-var UploadComplete = client.UploadComplete
+var UploadCompleted = client.UploadCompleted

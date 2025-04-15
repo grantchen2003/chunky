@@ -14,15 +14,15 @@ func main() {
 
 	for {
 		select {
-		case uploadedBytes := <-client.UploadedBytesChan:
-			fmt.Println("UploadedBytes:", uploadedBytes)
+		case progress := <-client.ProgressChan:
+			fmt.Println("Progress:", progress)
 
 		case uploadError := <-client.UploadErrorChan:
 			fmt.Println("Error:", uploadError)
 
 		case status := <-client.UploadStatusChan:
 			fmt.Println("Status:", status)
-			if status == chunky.UploadComplete {
+			if status == chunky.UploadCompleted {
 				log.Println("Upload complete!")
 				return
 			}

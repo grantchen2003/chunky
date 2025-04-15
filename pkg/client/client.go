@@ -3,12 +3,13 @@ package client
 import (
 	"context"
 	"fmt"
+
+	"github.com/grantchen2003/chunky/internal"
 )
 
-type UploadStatus = string
+type UploadProgress struct{}
 
-type UploadProgress struct {
-}
+type UploadStatus = string
 
 const (
 	UploadCompleted UploadStatus = "upload completed"
@@ -19,77 +20,100 @@ const (
 )
 
 type Client struct {
-	filePath         string
-	url              string
-	ctx              context.Context
-	ctxCancel        context.CancelFunc
-	isUploading      bool
+	uploadCtx       context.Context
+	uploadCtxCancel context.CancelFunc
+
 	ProgressChan     chan (UploadProgress)
 	UploadErrorChan  chan (error)
 	UploadStatusChan chan (UploadStatus)
+
+	filePath    string
+	isUploading bool
+	url         string
 }
 
 func NewClient(url string, filePath string) *Client {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &Client{
-		filePath:         filePath,
-		url:              url,
-		isUploading:      false,
-		ctx:              ctx,
-		ctxCancel:        cancel,
+		uploadCtx:        ctx,
+		uploadCtxCancel:  cancel,
 		ProgressChan:     make(chan UploadProgress),
 		UploadErrorChan:  make(chan error),
 		UploadStatusChan: make(chan UploadStatus),
+		filePath:         filePath,
+		url:              url,
+		isUploading:      false,
 	}
 }
 
 func (c *Client) Upload() {
 	if c.isUploading {
-		c.UploadErrorChan <- fmt.Errorf("cannot resume upload when upload is ongoing")
+		c.UploadErrorChan <- fmt.Errorf("cannot upload when upload is ongoing")
 		return
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	c.ctx = ctx
-	c.ctxCancel = cancel
-	c.isUploading = true
-
-	c.UploadStatusChan <- UploadStarted
-	err := Upload(c.url, c.filePath, c.ctx)
-	if err != nil {
-		c.isUploading = false
-		return
-	}
-	c.isUploading = false
-	c.UploadStatusChan <- UploadCompleted
-	close(c.ProgressChan)
-	close(c.UploadErrorChan)
-	close(c.UploadStatusChan)
-
+	c.handleUpload(UploadStarted)
 }
 
 func (c *Client) Pause() {
 	if !c.isUploading {
-		c.UploadErrorChan <- fmt.Errorf("cannot pause upload when no uploads are ongoing")
+		c.UploadErrorChan <- fmt.Errorf("cannot pause when no uploads are ongoing")
 		return
 	}
-	c.ctxCancel()
+
+	c.uploadCtxCancel()
+
 	c.UploadStatusChan <- UploadPaused
 }
 
 func (c *Client) Resume() {
 	if c.isUploading {
-		c.UploadErrorChan <- fmt.Errorf("cannot resume upload when upload is ongoing")
+		c.UploadErrorChan <- fmt.Errorf("cannot resume when upload is already ongoing")
 		return
 	}
 
-	c.UploadStatusChan <- UploadResumed
-	changesSincePause := true
-	if changesSincePause {
-		c.UploadStatusChan <- UploadRestarted
-		c.Upload()
-		return
+	if c.canResumeUpload() {
+		c.handleUpload(UploadResumed)
 	} else {
-
+		c.handleUpload(UploadRestarted)
 	}
+}
+
+func (c *Client) handleUpload(uploadStatus UploadStatus) {
+	c.resetUploadContext()
+	c.isUploading = true
+	c.UploadStatusChan <- uploadStatus
+
+	err := Upload(c.url, c.filePath, c.byteRangesToUpload(), c.uploadCtx)
+
+	if err != nil {
+		if _, ok := err.(*UploadCancelledByPauseError); !ok {
+			c.UploadErrorChan <- err
+		}
+
+		c.isUploading = false
+		return
+	}
+
+	c.isUploading = false
+	c.UploadStatusChan <- UploadCompleted
+
+	close(c.ProgressChan)
+	close(c.UploadErrorChan)
+	close(c.UploadStatusChan)
+}
+
+func (c *Client) canResumeUpload() bool {
+	return len(c.byteRangesToUpload()) != 0
+}
+
+func (c *Client) byteRangesToUpload() []internal.Range {
+	var x []internal.Range
+	return x
+}
+
+func (c *Client) resetUploadContext() {
+	ctx, cancel := context.WithCancel(context.Background())
+	c.uploadCtx = ctx
+	c.uploadCtxCancel = cancel
 }

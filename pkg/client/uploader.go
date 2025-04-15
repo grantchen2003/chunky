@@ -2,11 +2,19 @@ package client
 
 import (
 	"context"
-	"fmt"
 	"time"
+
+	"github.com/grantchen2003/chunky/internal"
 )
 
-func Upload(url string, filePath string, ctx context.Context) error {
+type UploadCancelledByPauseError struct {
+}
+
+func (e *UploadCancelledByPauseError) Error() string {
+	return "Upload cancelled by pause"
+}
+
+func Upload(url string, filePath string, byteRanges []internal.Range, ctx context.Context) error {
 	doneChan := make(chan struct{})
 
 	go func() {
@@ -19,10 +27,14 @@ func Upload(url string, filePath string, ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			// log.Printf("context cancelled")
-			return fmt.Errorf("context cancelled")
+			return &UploadCancelledByPauseError{}
 		case <-doneChan:
 			// log.Printf("done uploading")
 			return nil
 		}
 	}
+}
+
+func ResumeUpload() {
+
 }

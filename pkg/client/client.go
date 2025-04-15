@@ -72,7 +72,7 @@ func (c *Client) Resume() {
 		return
 	}
 
-	if c.canResumeUpload() {
+	if c.isSameFile() {
 		c.handleUpload(UploadResumed)
 	} else {
 		c.handleUpload(UploadRestarted)
@@ -103,13 +103,13 @@ func (c *Client) handleUpload(uploadStatus UploadStatus) {
 	close(c.UploadStatusChan)
 }
 
-func (c *Client) canResumeUpload() bool {
-	return len(c.byteRangesToUpload()) != 0
-}
-
 func (c *Client) byteRangesToUpload() []internal.Range {
 	var x []internal.Range
 	return x
+}
+
+func (c *Client) isSameFile() bool {
+	return true
 }
 
 func (c *Client) resetUploadContext() {

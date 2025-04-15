@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"github.com/grantchen2003/chunky/internal"
@@ -18,7 +19,7 @@ func Upload(url string, filePath string, byteRanges []internal.Range, ctx contex
 	doneChan := make(chan struct{})
 
 	go func() {
-		// log.Printf("Uploading %s to %s\n", url, filePath)
+		log.Printf("Uploading %s to %s\n", url, filePath)
 		time.Sleep(10 * time.Second)
 		close(doneChan)
 	}()
@@ -26,15 +27,9 @@ func Upload(url string, filePath string, byteRanges []internal.Range, ctx contex
 	for {
 		select {
 		case <-ctx.Done():
-			// log.Printf("context cancelled")
 			return &UploadCancelledByPauseError{}
 		case <-doneChan:
-			// log.Printf("done uploading")
 			return nil
 		}
 	}
-}
-
-func ResumeUpload() {
-
 }

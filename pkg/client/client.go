@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/grantchen2003/chunky/internal"
@@ -91,7 +92,7 @@ func (c *Client) handleUpload(uploadStatus UploadStatus) {
 	err := Upload(c.url, c.filePath, c.byteRangesToUpload(), c.uploadCtx)
 
 	if err != nil {
-		if _, ok := err.(*UploadPausedError); !ok {
+		if !errors.Is(err, &UploadPausedError{}) {
 			c.UploadErrorChan <- err
 		}
 

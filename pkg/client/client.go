@@ -34,6 +34,7 @@ type Client struct {
 
 func NewClient(url string, filePath string) *Client {
 	ctx, cancel := context.WithCancel(context.Background())
+
 	return &Client{
 		uploadCtx:        ctx,
 		uploadCtxCancel:  cancel,
@@ -48,7 +49,7 @@ func NewClient(url string, filePath string) *Client {
 
 func (c *Client) Upload() {
 	if c.isUploading {
-		c.UploadErrorChan <- fmt.Errorf("cannot upload when upload is ongoing")
+		c.UploadErrorChan <- fmt.Errorf("cannot upload when an upload is already ongoing")
 		return
 	}
 
@@ -57,7 +58,7 @@ func (c *Client) Upload() {
 
 func (c *Client) Pause() {
 	if !c.isUploading {
-		c.UploadErrorChan <- fmt.Errorf("cannot pause when no uploads are ongoing")
+		c.UploadErrorChan <- fmt.Errorf("cannot pause when no upload is ongoing")
 		return
 	}
 
@@ -68,26 +69,29 @@ func (c *Client) Pause() {
 
 func (c *Client) Resume() {
 	if c.isUploading {
-		c.UploadErrorChan <- fmt.Errorf("cannot resume when upload is already ongoing")
+		c.UploadErrorChan <- fmt.Errorf("cannot resume when an upload is already ongoing")
 		return
 	}
 
-	if c.isSameFile() {
-		c.handleUpload(UploadResumed)
-	} else {
+	if c.fileHasChangedSincePause() {
 		c.handleUpload(UploadRestarted)
+	} else {
+		c.handleUpload(UploadResumed)
 	}
 }
 
 func (c *Client) handleUpload(uploadStatus UploadStatus) {
-	c.resetUploadContext()
+	ctx, cancel := context.WithCancel(context.Background())
+	c.uploadCtx = ctx
+	c.uploadCtxCancel = cancel
+
 	c.isUploading = true
 	c.UploadStatusChan <- uploadStatus
 
 	err := Upload(c.url, c.filePath, c.byteRangesToUpload(), c.uploadCtx)
 
 	if err != nil {
-		if _, ok := err.(*UploadCancelledByPauseError); !ok {
+		if _, ok := err.(*UploadPausedError); !ok {
 			c.UploadErrorChan <- err
 		}
 
@@ -108,12 +112,6 @@ func (c *Client) byteRangesToUpload() []internal.Range {
 	return x
 }
 
-func (c *Client) isSameFile() bool {
+func (c *Client) fileHasChangedSincePause() bool {
 	return true
-}
-
-func (c *Client) resetUploadContext() {
-	ctx, cancel := context.WithCancel(context.Background())
-	c.uploadCtx = ctx
-	c.uploadCtxCancel = cancel
 }

@@ -8,11 +8,10 @@ import (
 	"github.com/grantchen2003/chunky/internal"
 )
 
-type UploadCancelledByPauseError struct {
-}
+type UploadPausedError struct{}
 
-func (e *UploadCancelledByPauseError) Error() string {
-	return "Upload cancelled by pause"
+func (e *UploadPausedError) Error() string {
+	return "Upload paused"
 }
 
 func Upload(url string, filePath string, byteRanges []internal.Range, ctx context.Context) error {
@@ -27,7 +26,7 @@ func Upload(url string, filePath string, byteRanges []internal.Range, ctx contex
 	for {
 		select {
 		case <-ctx.Done():
-			return &UploadCancelledByPauseError{}
+			return &UploadPausedError{}
 		case <-doneChan:
 			return nil
 		}

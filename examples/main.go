@@ -16,7 +16,9 @@ func handleUserCommands(client *chunky.Client) {
 
 	for {
 		input, _ := reader.ReadString('\n')
+
 		input = strings.TrimSpace(input)
+
 		switch input {
 		case "upload":
 			go client.Upload()
@@ -44,17 +46,18 @@ func main() {
 
 	for {
 		select {
+		case status := <-client.UploadStatusChan:
+			fmt.Println("Status:", status)
+
+			if status == chunky.UploadCompleted {
+				return
+			}
+
 		case progress := <-client.ProgressChan:
 			fmt.Println("Progress:", progress)
 
 		case uploadError := <-client.UploadErrorChan:
 			fmt.Println("Error:", uploadError)
-
-		case status := <-client.UploadStatusChan:
-			fmt.Println("Status:", status)
-			if status == chunky.UploadCompleted {
-				return
-			}
 		}
 	}
 }

@@ -53,8 +53,8 @@ func main() {
 				return
 			}
 
-		case progress := <-client.ProgressChan:
-			fmt.Println("Progress:", progress)
+		case uploadProgress := <-client.UploadProgressChan:
+			fmt.Println("Upload progress:", uploadProgress)
 
 		case uploadError := <-client.UploadErrorChan:
 			fmt.Println("Error:", uploadError)

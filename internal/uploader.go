@@ -31,7 +31,11 @@ func (u *Uploader) HasNoExistingupload() bool {
 	return false
 }
 
-func (u *Uploader) Upload(ctx context.Context, url string, filePath FilePath) UploadResult {
+func (u *Uploader) FileHasChangedSinceLastUpload() bool {
+	return true
+}
+
+func (u *Uploader) Upload(ctx context.Context, url string, filePath FilePath, uploadProgressChan chan<- UploadProgress) UploadResult {
 	u.isUploading = true
 	defer func() { u.isUploading = false }()
 
@@ -41,7 +45,13 @@ func (u *Uploader) Upload(ctx context.Context, url string, filePath FilePath) Up
 
 	go func() {
 		log.Printf("Uploading %s to %s\n", url, filePath)
-		time.Sleep(3 * time.Second) // simulate file upload
+		for i := range 3 {
+			time.Sleep(1 * time.Second)
+			uploadProgressChan <- UploadProgress{
+				PercentageUploaded: 100 * i / 3,
+			}
+		}
+		// simulate file upload
 		close(doneChan)
 	}()
 

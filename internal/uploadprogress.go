@@ -1,3 +1,5 @@
 package internal
 
-type UploadProgress struct{}
+type UploadProgress struct {
+	PercentageUploaded int
+}

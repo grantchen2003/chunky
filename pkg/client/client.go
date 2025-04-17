@@ -71,6 +71,11 @@ func (c *Client) Resume() {
 		return
 	}
 
+	if c.uploader.FileHasChangedSinceLastUpload() {
+		c.UserErrorChan <- internal.ErrResumedOnChangedFile
+		return
+	}
+
 	c.handleUpload(internal.UploadResumed)
 }
 
@@ -79,7 +84,7 @@ func (c *Client) handleUpload(uploadStatus internal.UploadStatus) {
 
 	c.UploadStatusChan <- uploadStatus
 
-	uploadResult := c.uploader.Upload(c.uploadCtx, c.url, c.filePath)
+	uploadResult := c.uploader.Upload(c.uploadCtx, c.url, c.filePath, c.UploadProgressChan)
 
 	switch uploadResult {
 	case internal.UploadResultSuccess:

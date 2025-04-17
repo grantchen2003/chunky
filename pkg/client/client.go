@@ -31,7 +31,7 @@ func (c *Client) Upload() error {
 
 	uploadResult := c.uploadManager.Upload(c.url, c.filePath, c.uploadNotifier.ProgressChan)
 
-	c.uploadNotifier.StatusChan <- determineUploadStatus(uploadResult)
+	c.uploadNotifier.ResultChan <- uploadResult
 
 	c.uploadNotifier.Close()
 
@@ -57,7 +57,7 @@ func (c *Client) Resume() error {
 
 	uploadResult := c.uploadManager.Upload(c.url, c.filePath, c.uploadNotifier.ProgressChan)
 
-	c.uploadNotifier.StatusChan <- determineUploadStatus(uploadResult)
+	c.uploadNotifier.ResultChan <- uploadResult
 
 	c.uploadNotifier.Close()
 
@@ -68,26 +68,10 @@ func (c *Client) UploadProgressChan() <-chan internal.UploadProgress {
 	return c.uploadNotifier.ProgressChan
 }
 
-func (c *Client) UploadErrorChan() <-chan error {
-	return c.uploadNotifier.ErrorChan
-}
-
 func (c *Client) UploadStatusChan() <-chan internal.UploadStatus {
 	return c.uploadNotifier.StatusChan
 }
 
-func determineUploadStatus(uploadResult internal.UploadResult) internal.UploadStatus {
-	switch uploadResult {
-	case internal.UploadResultSuccess:
-		return internal.UploadCompleted
-
-	case internal.UploadResultPaused:
-		return internal.UploadPaused
-
-	case internal.UploadResultError:
-		return internal.UploadFailed
-
-	default:
-		return internal.UploadFailed
-	}
+func (c *Client) UploadResultChan() <-chan internal.UploadResult {
+	return c.uploadNotifier.ResultChan
 }

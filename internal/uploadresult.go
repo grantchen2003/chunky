@@ -3,8 +3,7 @@ package internal
 type UploadResult int
 
 const (
-	UploadResultUnknown UploadResult = iota
-	UploadResultSuccess
+	UploadResultSuccess = iota
 	UploadResultPaused
 	UploadResultError
 )

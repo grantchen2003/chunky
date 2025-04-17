@@ -2,20 +2,20 @@ package internal
 
 type UploadNotifier struct {
 	ProgressChan chan UploadProgress
-	ErrorChan    chan error
+	ResultChan   chan UploadResult
 	StatusChan   chan UploadStatus
 }
 
 func NewUploadNotifier() *UploadNotifier {
 	return &UploadNotifier{
 		ProgressChan: make(chan UploadProgress),
-		ErrorChan:    make(chan error),
+		ResultChan:   make(chan UploadResult),
 		StatusChan:   make(chan UploadStatus),
 	}
 }
 
 func (un *UploadNotifier) Close() {
 	close(un.ProgressChan)
-	close(un.ErrorChan)
+	close(un.ResultChan)
 	close(un.StatusChan)
 }

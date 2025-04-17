@@ -1,89 +1,89 @@
 package client
 
 import (
-	"context"
-
 	"github.com/grantchen2003/chunky/internal"
 )
 
 type Client struct {
-	uploadCtx       context.Context
-	uploadCtxCancel context.CancelFunc
-
-	UploadProgressChan chan (internal.UploadProgress)
-	UploadErrorChan    chan (error)
-	UploadStatusChan   chan (internal.UploadStatus)
-	UserErrorChan      chan (error)
-
-	uploader *internal.Uploader
-
 	filePath internal.FilePath
 	url      string
+
+	uploadNotifier *internal.UploadNotifier
+	uploader       *internal.Uploader
 }
 
 func NewClient(url string, filePathStr string) *Client {
-	ctx, cancel := context.WithCancel(context.Background())
-
-	filePath := internal.FilePath(filePathStr)
-
 	return &Client{
-		uploadCtx:       ctx,
-		uploadCtxCancel: cancel,
-
-		UploadProgressChan: make(chan internal.UploadProgress),
-		UploadErrorChan:    make(chan error),
-		UploadStatusChan:   make(chan internal.UploadStatus),
-		UserErrorChan:      make(chan error),
-
-		uploader: internal.NewUploader(),
-
-		filePath: filePath,
+		filePath: internal.FilePath(filePathStr),
 		url:      url,
+
+		uploadNotifier: internal.NewUploadNotifier(),
+		uploader:       internal.NewUploader(),
 	}
 }
 
 func (c *Client) Upload() {
 	if err := c.uploader.ValidateUpload(); err != nil {
-		c.UserErrorChan <- err
+		c.uploadNotifier.UserErrorChan <- err
 	}
 
-	c.handleUpload(internal.UploadStarted)
+	c.upload(internal.UploadStarted)
 }
 
 func (c *Client) Pause() {
 	if err := c.uploader.ValidatePause(); err != nil {
-		c.UserErrorChan <- err
+		c.uploadNotifier.UserErrorChan <- err
 	}
 
-	c.uploadCtxCancel()
+	c.uploader.PauseUpload()
 }
 
 func (c *Client) Resume() {
 	if err := c.uploader.ValidateResume(); err != nil {
-		c.UserErrorChan <- err
+		c.uploadNotifier.UserErrorChan <- err
 	}
 
-	c.handleUpload(internal.UploadResumed)
+	c.upload(internal.UploadResumed)
 }
 
-func (c *Client) handleUpload(uploadStatus internal.UploadStatus) {
-	c.uploadCtx, c.uploadCtxCancel = context.WithCancel(context.Background())
+func (c *Client) UploadProgressChan() <-chan internal.UploadProgress {
+	return c.uploadNotifier.ProgressChan
+}
 
-	c.UploadStatusChan <- uploadStatus
+func (c *Client) UploadErrorChan() <-chan error {
+	return c.uploadNotifier.ErrorChan
+}
 
-	uploadResult := c.uploader.Upload(c.uploadCtx, c.url, c.filePath, c.UploadProgressChan)
+func (c *Client) UploadStatusChan() <-chan internal.UploadStatus {
+	return c.uploadNotifier.StatusChan
+}
 
+func (c *Client) UserErrorChan() <-chan error {
+	return c.uploadNotifier.UserErrorChan
+}
+
+func (c *Client) upload(uploadStatus internal.UploadStatus) {
+	c.uploadNotifier.StatusChan <- uploadStatus
+
+	uploadResult := c.uploader.Upload(c.url, c.filePath, c.uploadNotifier.ProgressChan)
+
+	c.uploadNotifier.StatusChan <- uploadResultToUploadStatus(uploadResult)
+
+	c.uploadNotifier.Close()
+}
+
+func uploadResultToUploadStatus(uploadResult internal.UploadResult) internal.UploadStatus {
 	switch uploadResult {
 	case internal.UploadResultSuccess:
-		c.UploadStatusChan <- internal.UploadCompleted
-		close(c.UploadProgressChan)
-		close(c.UploadErrorChan)
-		close(c.UploadStatusChan)
+		return internal.UploadCompleted
 
 	case internal.UploadResultPaused:
-		c.UploadStatusChan <- internal.UploadPaused
+		return internal.UploadPaused
 
 	case internal.UploadResultError:
-		c.UploadStatusChan <- internal.UploadFailed
+		return internal.UploadFailed
+
+	default:
+		return internal.UploadFailed
 	}
 }

@@ -2,15 +2,14 @@ package internal
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 )
 
 type UploadResult int
 
-type Uploader struct {
-	isUploading bool
-}
+type FilePath string
 
 const (
 	UploadResultUnknown UploadResult = iota
@@ -19,12 +18,27 @@ const (
 	UploadResultError
 )
 
+type Uploader struct {
+	ctx         context.Context
+	ctxCancel   context.CancelFunc
+	isUploading bool
+}
+
 func NewUploader() *Uploader {
-	return &Uploader{}
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	return &Uploader{
+		ctx:         ctx,
+		ctxCancel:   ctxCancel,
+		isUploading: false,
+	}
+}
+
+func (u *Uploader) PauseUpload() {
+	u.ctxCancel()
 }
 
 func (u *Uploader) ValidateUpload() error {
-	if !u.isUploading {
+	if u.isUploading {
 		return ErrPausedOnNoOngoingUpload
 	}
 
@@ -32,6 +46,7 @@ func (u *Uploader) ValidateUpload() error {
 }
 
 func (u *Uploader) ValidatePause() error {
+	fmt.Println(u)
 	if !u.isUploading {
 		return ErrPausedOnNoOngoingUpload
 	}
@@ -55,9 +70,11 @@ func (u *Uploader) ValidateResume() error {
 	return nil
 }
 
-func (u *Uploader) Upload(ctx context.Context, url string, filePath FilePath, uploadProgressChan chan<- UploadProgress) UploadResult {
+func (u *Uploader) Upload(url string, filePath FilePath, uploadProgressChan chan<- UploadProgress) UploadResult {
 	u.isUploading = true
 	defer func() { u.isUploading = false }()
+
+	u.ctx, u.ctxCancel = context.WithCancel(context.Background())
 
 	doneChan := make(chan struct{})
 
@@ -65,10 +82,10 @@ func (u *Uploader) Upload(ctx context.Context, url string, filePath FilePath, up
 
 	go func() {
 		log.Printf("Uploading %s to %s\n", url, filePath)
-		for i := range 3 {
-			time.Sleep(1 * time.Second)
+		for i := range 5 {
+			time.Sleep(5 * time.Second)
 			uploadProgressChan <- UploadProgress{
-				PercentageUploaded: 100 * i / 3,
+				PercentageUploaded: 100 * i / 5,
 			}
 		}
 		// simulate file upload
@@ -77,7 +94,7 @@ func (u *Uploader) Upload(ctx context.Context, url string, filePath FilePath, up
 
 	for {
 		select {
-		case <-ctx.Done():
+		case <-u.ctx.Done():
 			return UploadResultPaused
 		case <-doneChan:
 			if errorOccured {

@@ -46,21 +46,21 @@ func main() {
 
 	for {
 		select {
-		case status := <-client.UploadStatusChan:
+		case status := <-client.UploadStatusChan():
 			fmt.Println("Status:", status.Message)
 
 			if status.IsTerminating {
 				return
 			}
 
-		case uploadProgress := <-client.UploadProgressChan:
+		case uploadProgress := <-client.UploadProgressChan():
 			fmt.Println("Upload progress:", uploadProgress)
 
-		case uploadError := <-client.UploadErrorChan:
+		case uploadError := <-client.UploadErrorChan():
 			fmt.Println("Upload error:", uploadError)
 			return
 
-		case userError := <-client.UserErrorChan:
+		case userError := <-client.UserErrorChan():
 			fmt.Println("User error:", userError)
 		}
 	}

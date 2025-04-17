@@ -2,13 +2,51 @@ package internal
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"sync"
+	"time"
 )
 
-func InitiateUploadSession(url string, filePath string, totalBytes int, fileHash string) (string, error) {
+func UploadStatus() []Range {
+	return make([]Range, 9)
+}
+
+type UploadResult int
+
+const (
+	UploadResultUnknown UploadResult = iota
+	UploadResultSuccess
+	UploadResultPaused
+	UploadResultError
+)
+
+func Upload(ctx context.Context, url string, filePath FilePath) UploadResult {
+	doneChan := make(chan struct{})
+
+	byteRangesToUpload := UploadStatus()
+
+	go func() {
+		log.Printf("Uploading %s to %s\n", url, filePath)
+		fmt.Println(byteRangesToUpload)
+		time.Sleep(10 * time.Second)
+		close(doneChan)
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return UploadResultPaused
+		case <-doneChan:
+			return UploadResultError
+		}
+	}
+}
+
+func initiateUploadSession(url string, filePath string, totalBytes int, fileHash string) (string, error) {
 	payload := map[string]any{
 		"filePath":   filePath,
 		"totalBytes": totalBytes,
@@ -40,7 +78,7 @@ func InitiateUploadSession(url string, filePath string, totalBytes int, fileHash
 	}
 }
 
-func UploadFileChunks(sessionId string, fileChunks [][]byte, url string, uploadedChunksChannel chan<- int) {
+func uploadFileChunks(sessionId string, fileChunks [][]byte, url string, uploadedChunksChannel chan<- int) {
 	var wg sync.WaitGroup
 
 	wg.Add(len(fileChunks))

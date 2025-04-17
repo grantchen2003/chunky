@@ -27,13 +27,16 @@ type Client struct {
 	UploadErrorChan  chan (error)
 	UploadStatusChan chan (UploadStatus)
 
-	filePath    string
+	filePath    internal.FilePath
+	fileTracker *internal.FileTracker
 	isUploading bool
 	url         string
 }
 
-func NewClient(url string, filePath string) *Client {
+func NewClient(url string, filePathStr string) *Client {
 	ctx, cancel := context.WithCancel(context.Background())
+
+	filePath := internal.FilePath(filePathStr)
 
 	return &Client{
 		uploadCtx:        ctx,
@@ -42,6 +45,7 @@ func NewClient(url string, filePath string) *Client {
 		UploadErrorChan:  make(chan error),
 		UploadStatusChan: make(chan UploadStatus),
 		filePath:         filePath,
+		fileTracker:      internal.NewFileTracker(filePath),
 		url:              url,
 		isUploading:      false,
 	}
@@ -63,8 +67,6 @@ func (c *Client) Pause() {
 	}
 
 	c.uploadCtxCancel()
-
-	c.UploadStatusChan <- UploadPaused
 }
 
 func (c *Client) Resume() {
@@ -73,7 +75,7 @@ func (c *Client) Resume() {
 		return
 	}
 
-	if c.fileHasChangedSincePause() {
+	if c.fileTracker.FileHasChangedSincePause() {
 		c.handleUpload(UploadRestarted)
 	} else {
 		c.handleUpload(UploadResumed)
@@ -81,37 +83,26 @@ func (c *Client) Resume() {
 }
 
 func (c *Client) handleUpload(uploadStatus UploadStatus) {
-	ctx, cancel := context.WithCancel(context.Background())
-	c.uploadCtx = ctx
-	c.uploadCtxCancel = cancel
-
 	c.isUploading = true
+	defer func() { c.isUploading = false }()
+
+	c.uploadCtx, c.uploadCtxCancel = context.WithCancel(context.Background())
+
 	c.UploadStatusChan <- uploadStatus
 
-	err := Upload(c.url, c.filePath, c.byteRangesToUpload(), c.uploadCtx)
+	uploadResult := internal.Upload(c.uploadCtx, c.url, c.filePath)
 
-	if err != nil {
-		if _, ok := err.(*UploadPausedError); !ok {
-			c.UploadErrorChan <- err
-		}
+	switch uploadResult {
+	case internal.UploadResultSuccess:
+		close(c.ProgressChan)
+		close(c.UploadErrorChan)
+		close(c.UploadStatusChan)
+		c.UploadStatusChan <- UploadCompleted
 
-		c.isUploading = false
-		return
+	case internal.UploadResultPaused:
+		c.UploadStatusChan <- UploadPaused
+
+	case internal.UploadResultError:
+		c.UploadErrorChan <- fmt.Errorf("%s", string(fmt.Sprint(uploadResult)))
 	}
-
-	c.isUploading = false
-	c.UploadStatusChan <- UploadCompleted
-
-	close(c.ProgressChan)
-	close(c.UploadErrorChan)
-	close(c.UploadStatusChan)
-}
-
-func (c *Client) byteRangesToUpload() []internal.Range {
-	var x []internal.Range
-	return x
-}
-
-func (c *Client) fileHasChangedSincePause() bool {
-	return true
 }

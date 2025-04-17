@@ -2,35 +2,46 @@ package client
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	"github.com/grantchen2003/chunky/internal"
 )
 
+var (
+	ErrStartedOnOngoingUpload     = errors.New("upload start when an upload is already ongoing")
+	ErrPausedOnNoOngoingUpload    = errors.New("paused when no upload is ongoing")
+	ErrResumedOnNonExistingUpload = errors.New("resumed on non existing upload error")
+	ErrResumedOnOngoingUpload     = errors.New("resumed on ongoing upload error")
+)
+
+var (
+	UploadCompleted UploadStatus = UploadStatus{Message: "upload completed", IsTerminating: true}
+	UploadFailed    UploadStatus = UploadStatus{Message: "upload failed", IsTerminating: true}
+	UploadStarted   UploadStatus = UploadStatus{Message: "upload started", IsTerminating: true}
+	UploadPaused    UploadStatus = UploadStatus{Message: "upload paused", IsTerminating: false}
+	UploadResumed   UploadStatus = UploadStatus{Message: "upload resumed", IsTerminating: false}
+)
+
 type UploadProgress struct{}
 
-type UploadStatus = string
-
-const (
-	UploadCompleted UploadStatus = "upload completed"
-	UploadStarted   UploadStatus = "upload started"
-	UploadPaused    UploadStatus = "upload paused"
-	UploadRestarted UploadStatus = "upload restarted"
-	UploadResumed   UploadStatus = "upload resumed"
-)
+type UploadStatus = struct {
+	Message       string
+	IsTerminating bool
+}
 
 type Client struct {
 	uploadCtx       context.Context
 	uploadCtxCancel context.CancelFunc
 
-	ProgressChan     chan (UploadProgress)
-	UploadErrorChan  chan (error)
-	UploadStatusChan chan (UploadStatus)
+	UploadProgressChan chan (UploadProgress)
+	UploadErrorChan    chan (error)
+	UploadStatusChan   chan (UploadStatus)
+	UserErrorChan      chan (error)
 
-	filePath    internal.FilePath
-	fileTracker *internal.FileTracker
-	isUploading bool
-	url         string
+	uploader *internal.Uploader
+
+	filePath internal.FilePath
+	url      string
 }
 
 func NewClient(url string, filePathStr string) *Client {
@@ -39,21 +50,24 @@ func NewClient(url string, filePathStr string) *Client {
 	filePath := internal.FilePath(filePathStr)
 
 	return &Client{
-		uploadCtx:        ctx,
-		uploadCtxCancel:  cancel,
-		ProgressChan:     make(chan UploadProgress),
-		UploadErrorChan:  make(chan error),
-		UploadStatusChan: make(chan UploadStatus),
-		filePath:         filePath,
-		fileTracker:      internal.NewFileTracker(filePath),
-		url:              url,
-		isUploading:      false,
+		uploadCtx:       ctx,
+		uploadCtxCancel: cancel,
+
+		UploadProgressChan: make(chan UploadProgress),
+		UploadErrorChan:    make(chan error),
+		UploadStatusChan:   make(chan UploadStatus),
+		UserErrorChan:      make(chan error),
+
+		uploader: internal.NewUploader(),
+
+		filePath: filePath,
+		url:      url,
 	}
 }
 
 func (c *Client) Upload() {
-	if c.isUploading {
-		c.UploadErrorChan <- fmt.Errorf("cannot upload when an upload is already ongoing")
+	if c.uploader.IsUploading() {
+		c.UserErrorChan <- ErrStartedOnOngoingUpload
 		return
 	}
 
@@ -61,8 +75,8 @@ func (c *Client) Upload() {
 }
 
 func (c *Client) Pause() {
-	if !c.isUploading {
-		c.UploadErrorChan <- fmt.Errorf("cannot pause when no upload is ongoing")
+	if !c.uploader.IsUploading() {
+		c.UserErrorChan <- ErrPausedOnNoOngoingUpload
 		return
 	}
 
@@ -70,39 +84,37 @@ func (c *Client) Pause() {
 }
 
 func (c *Client) Resume() {
-	if c.isUploading {
-		c.UploadErrorChan <- fmt.Errorf("cannot resume when an upload is already ongoing")
+	if c.uploader.IsUploading() {
+		c.UserErrorChan <- ErrResumedOnOngoingUpload
 		return
 	}
 
-	if c.fileTracker.FileHasChangedSincePause() {
-		c.handleUpload(UploadRestarted)
-	} else {
-		c.handleUpload(UploadResumed)
+	if c.uploader.HasNoExistingupload() {
+		c.UserErrorChan <- ErrResumedOnNonExistingUpload
+		return
 	}
+
+	c.handleUpload(UploadResumed)
 }
 
 func (c *Client) handleUpload(uploadStatus UploadStatus) {
-	c.isUploading = true
-	defer func() { c.isUploading = false }()
-
 	c.uploadCtx, c.uploadCtxCancel = context.WithCancel(context.Background())
 
 	c.UploadStatusChan <- uploadStatus
 
-	uploadResult := internal.Upload(c.uploadCtx, c.url, c.filePath)
+	uploadResult := c.uploader.Upload(c.uploadCtx, c.url, c.filePath)
 
 	switch uploadResult {
 	case internal.UploadResultSuccess:
-		close(c.ProgressChan)
+		c.UploadStatusChan <- UploadCompleted
+		close(c.UploadProgressChan)
 		close(c.UploadErrorChan)
 		close(c.UploadStatusChan)
-		c.UploadStatusChan <- UploadCompleted
 
 	case internal.UploadResultPaused:
 		c.UploadStatusChan <- UploadPaused
 
 	case internal.UploadResultError:
-		c.UploadErrorChan <- fmt.Errorf("%s", string(fmt.Sprint(uploadResult)))
+		c.UploadStatusChan <- UploadFailed
 	}
 }

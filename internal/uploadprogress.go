@@ -1,0 +1,2 @@
+
+type UploadProgress struct{}

@@ -2,40 +2,17 @@ package client
 
 import (
 	"context"
-	"errors"
 
 	"github.com/grantchen2003/chunky/internal"
 )
-
-var (
-	ErrStartedOnOngoingUpload     = errors.New("upload start when an upload is already ongoing")
-	ErrPausedOnNoOngoingUpload    = errors.New("paused when no upload is ongoing")
-	ErrResumedOnNonExistingUpload = errors.New("resumed on non existing upload error")
-	ErrResumedOnOngoingUpload     = errors.New("resumed on ongoing upload error")
-)
-
-var (
-	UploadCompleted UploadStatus = UploadStatus{Message: "upload completed", IsTerminating: true}
-	UploadFailed    UploadStatus = UploadStatus{Message: "upload failed", IsTerminating: true}
-	UploadStarted   UploadStatus = UploadStatus{Message: "upload started", IsTerminating: false}
-	UploadPaused    UploadStatus = UploadStatus{Message: "upload paused", IsTerminating: true}
-	UploadResumed   UploadStatus = UploadStatus{Message: "upload resumed", IsTerminating: false}
-)
-
-type UploadProgress struct{}
-
-type UploadStatus = struct {
-	Message       string
-	IsTerminating bool
-}
 
 type Client struct {
 	uploadCtx       context.Context
 	uploadCtxCancel context.CancelFunc
 
-	UploadProgressChan chan (UploadProgress)
+	UploadProgressChan chan (internal.UploadProgress)
 	UploadErrorChan    chan (error)
-	UploadStatusChan   chan (UploadStatus)
+	UploadStatusChan   chan (internal.UploadStatus)
 	UserErrorChan      chan (error)
 
 	uploader *internal.Uploader
@@ -53,9 +30,9 @@ func NewClient(url string, filePathStr string) *Client {
 		uploadCtx:       ctx,
 		uploadCtxCancel: cancel,
 
-		UploadProgressChan: make(chan UploadProgress),
+		UploadProgressChan: make(chan internal.UploadProgress),
 		UploadErrorChan:    make(chan error),
-		UploadStatusChan:   make(chan UploadStatus),
+		UploadStatusChan:   make(chan internal.UploadStatus),
 		UserErrorChan:      make(chan error),
 
 		uploader: internal.NewUploader(),
@@ -67,16 +44,16 @@ func NewClient(url string, filePathStr string) *Client {
 
 func (c *Client) Upload() {
 	if c.uploader.IsUploading() {
-		c.UserErrorChan <- ErrStartedOnOngoingUpload
+		c.UserErrorChan <- internal.ErrStartedOnOngoingUpload
 		return
 	}
 
-	c.handleUpload(UploadStarted)
+	c.handleUpload(internal.UploadStarted)
 }
 
 func (c *Client) Pause() {
 	if !c.uploader.IsUploading() {
-		c.UserErrorChan <- ErrPausedOnNoOngoingUpload
+		c.UserErrorChan <- internal.ErrPausedOnNoOngoingUpload
 		return
 	}
 
@@ -85,19 +62,19 @@ func (c *Client) Pause() {
 
 func (c *Client) Resume() {
 	if c.uploader.IsUploading() {
-		c.UserErrorChan <- ErrResumedOnOngoingUpload
+		c.UserErrorChan <- internal.ErrResumedOnOngoingUpload
 		return
 	}
 
 	if c.uploader.HasNoExistingupload() {
-		c.UserErrorChan <- ErrResumedOnNonExistingUpload
+		c.UserErrorChan <- internal.ErrResumedOnNonExistingUpload
 		return
 	}
 
-	c.handleUpload(UploadResumed)
+	c.handleUpload(internal.UploadResumed)
 }
 
-func (c *Client) handleUpload(uploadStatus UploadStatus) {
+func (c *Client) handleUpload(uploadStatus internal.UploadStatus) {
 	c.uploadCtx, c.uploadCtxCancel = context.WithCancel(context.Background())
 
 	c.UploadStatusChan <- uploadStatus
@@ -106,15 +83,15 @@ func (c *Client) handleUpload(uploadStatus UploadStatus) {
 
 	switch uploadResult {
 	case internal.UploadResultSuccess:
-		c.UploadStatusChan <- UploadCompleted
+		c.UploadStatusChan <- internal.UploadCompleted
 		close(c.UploadProgressChan)
 		close(c.UploadErrorChan)
 		close(c.UploadStatusChan)
 
 	case internal.UploadResultPaused:
-		c.UploadStatusChan <- UploadPaused
+		c.UploadStatusChan <- internal.UploadPaused
 
 	case internal.UploadResultError:
-		c.UploadStatusChan <- UploadFailed
+		c.UploadStatusChan <- internal.UploadFailed
 	}
 }

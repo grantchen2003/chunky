@@ -47,9 +47,9 @@ func main() {
 	for {
 		select {
 		case status := <-client.UploadStatusChan:
-			fmt.Println("Status:", status)
+			fmt.Println("Status:", status.Message)
 
-			if status == chunky.UploadCompleted {
+			if status.IsTerminating {
 				return
 			}
 
@@ -57,7 +57,11 @@ func main() {
 			fmt.Println("Upload progress:", uploadProgress)
 
 		case uploadError := <-client.UploadErrorChan:
-			fmt.Println("Error:", uploadError)
+			fmt.Println("Upload error:", uploadError)
+			return
+
+		case userError := <-client.UserErrorChan:
+			fmt.Println("User error:", userError)
 		}
 	}
 }

@@ -23,16 +23,36 @@ func NewUploader() *Uploader {
 	return &Uploader{}
 }
 
-func (u *Uploader) IsUploading() bool {
-	return u.isUploading
+func (u *Uploader) ValidateUpload() error {
+	if !u.isUploading {
+		return ErrPausedOnNoOngoingUpload
+	}
+
+	return nil
 }
 
-func (u *Uploader) HasNoExistingupload() bool {
-	return false
+func (u *Uploader) ValidatePause() error {
+	if !u.isUploading {
+		return ErrPausedOnNoOngoingUpload
+	}
+
+	return nil
 }
 
-func (u *Uploader) FileHasChangedSinceLastUpload() bool {
-	return true
+func (u *Uploader) ValidateResume() error {
+	if u.isUploading {
+		return ErrResumedOnOngoingUpload
+	}
+
+	if u.hasNoExistingupload() {
+		return ErrResumedOnNonExistingUpload
+	}
+
+	if u.fileHasChangedSinceLastUpload() {
+		return ErrResumedOnChangedFile
+	}
+
+	return nil
 }
 
 func (u *Uploader) Upload(ctx context.Context, url string, filePath FilePath, uploadProgressChan chan<- UploadProgress) UploadResult {
@@ -67,4 +87,12 @@ func (u *Uploader) Upload(ctx context.Context, url string, filePath FilePath, up
 			}
 		}
 	}
+}
+
+func (u *Uploader) hasNoExistingupload() bool {
+	return false
+}
+
+func (u *Uploader) fileHasChangedSinceLastUpload() bool {
+	return true
 }

@@ -43,37 +43,24 @@ func NewClient(url string, filePathStr string) *Client {
 }
 
 func (c *Client) Upload() {
-	if c.uploader.IsUploading() {
-		c.UserErrorChan <- internal.ErrStartedOnOngoingUpload
-		return
+	if err := c.uploader.ValidateUpload(); err != nil {
+		c.UserErrorChan <- err
 	}
 
 	c.handleUpload(internal.UploadStarted)
 }
 
 func (c *Client) Pause() {
-	if !c.uploader.IsUploading() {
-		c.UserErrorChan <- internal.ErrPausedOnNoOngoingUpload
-		return
+	if err := c.uploader.ValidatePause(); err != nil {
+		c.UserErrorChan <- err
 	}
 
 	c.uploadCtxCancel()
 }
 
 func (c *Client) Resume() {
-	if c.uploader.IsUploading() {
-		c.UserErrorChan <- internal.ErrResumedOnOngoingUpload
-		return
-	}
-
-	if c.uploader.HasNoExistingupload() {
-		c.UserErrorChan <- internal.ErrResumedOnNonExistingUpload
-		return
-	}
-
-	if c.uploader.FileHasChangedSinceLastUpload() {
-		c.UserErrorChan <- internal.ErrResumedOnChangedFile
-		return
+	if err := c.uploader.ValidateResume(); err != nil {
+		c.UserErrorChan <- err
 	}
 
 	c.handleUpload(internal.UploadResumed)

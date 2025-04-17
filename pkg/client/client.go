@@ -22,28 +22,46 @@ func NewClient(url string, filePathStr string) *Client {
 	}
 }
 
-func (c *Client) Upload() {
+func (c *Client) Upload() error {
 	if err := c.uploadManager.ValidateUpload(); err != nil {
-		c.uploadNotifier.UserErrorChan <- err
+		return err
 	}
 
-	c.upload(internal.UploadStarted)
+	c.uploadNotifier.StatusChan <- internal.UploadStarted
+
+	uploadResult := c.uploadManager.Upload(c.url, c.filePath, c.uploadNotifier.ProgressChan)
+
+	c.uploadNotifier.StatusChan <- determineUploadStatus(uploadResult)
+
+	c.uploadNotifier.Close()
+
+	return nil
 }
 
-func (c *Client) Pause() {
-	if err := c.uploadManager.ValidatePause(); err != nil {
-		c.uploadNotifier.UserErrorChan <- err
+func (c *Client) Pause() error {
+	if err := c.uploadManager.ValidatePauseUpload(); err != nil {
+		return err
 	}
 
 	c.uploadManager.PauseUpload()
+
+	return nil
 }
 
-func (c *Client) Resume() {
-	if err := c.uploadManager.ValidateResume(); err != nil {
-		c.uploadNotifier.UserErrorChan <- err
+func (c *Client) Resume() error {
+	if err := c.uploadManager.ValidateResumeUpload(); err != nil {
+		return err
 	}
 
-	c.upload(internal.UploadResumed)
+	c.uploadNotifier.StatusChan <- internal.UploadResumed
+
+	uploadResult := c.uploadManager.Upload(c.url, c.filePath, c.uploadNotifier.ProgressChan)
+
+	c.uploadNotifier.StatusChan <- determineUploadStatus(uploadResult)
+
+	c.uploadNotifier.Close()
+
+	return nil
 }
 
 func (c *Client) UploadProgressChan() <-chan internal.UploadProgress {
@@ -56,20 +74,6 @@ func (c *Client) UploadErrorChan() <-chan error {
 
 func (c *Client) UploadStatusChan() <-chan internal.UploadStatus {
 	return c.uploadNotifier.StatusChan
-}
-
-func (c *Client) UserErrorChan() <-chan error {
-	return c.uploadNotifier.UserErrorChan
-}
-
-func (c *Client) upload(uploadStatus internal.UploadStatus) {
-	c.uploadNotifier.StatusChan <- uploadStatus
-
-	uploadResult := c.uploadManager.Upload(c.url, c.filePath, c.uploadNotifier.ProgressChan)
-
-	c.uploadNotifier.StatusChan <- determineUploadStatus(uploadResult)
-
-	c.uploadNotifier.Close()
 }
 
 func determineUploadStatus(uploadResult internal.UploadResult) internal.UploadStatus {

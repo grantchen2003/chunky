@@ -2,38 +2,24 @@ package internal
 
 import (
 	"context"
-	"log"
-	"time"
-)
-
-type UploadResult int
-
-type FilePath string
-
-const (
-	UploadResultUnknown UploadResult = iota
-	UploadResultSuccess
-	UploadResultPaused
-	UploadResultError
 )
 
 type UploadManager struct {
-	ctx         context.Context
-	ctxCancel   context.CancelFunc
+	ctx       context.Context
+	ctxCancel context.CancelFunc
+
 	isUploading bool
 }
 
 func NewUploadManager() *UploadManager {
 	ctx, ctxCancel := context.WithCancel(context.Background())
+
 	return &UploadManager{
-		ctx:         ctx,
-		ctxCancel:   ctxCancel,
+		ctx:       ctx,
+		ctxCancel: ctxCancel,
+
 		isUploading: false,
 	}
-}
-
-func (u *UploadManager) PauseUpload() {
-	u.ctxCancel()
 }
 
 func (u *UploadManager) ValidateUpload() error {
@@ -44,7 +30,39 @@ func (u *UploadManager) ValidateUpload() error {
 	return nil
 }
 
-func (u *UploadManager) ValidatePause() error {
+func (u *UploadManager) Upload(url string, filePath FilePath, uploadProgressChan chan<- UploadProgress) UploadResult {
+	if err := u.ValidateUpload(); err != nil {
+		return UploadResultError
+	}
+
+	u.isUploading = true
+	defer func() { u.isUploading = false }()
+
+	u.ctx, u.ctxCancel = context.WithCancel(context.Background())
+
+	doneChan := make(chan error)
+
+	go func() {
+		defer close(doneChan)
+		doneChan <- upload(url, filePath, uploadProgressChan)
+	}()
+
+	for {
+		select {
+		case <-u.ctx.Done():
+			return UploadResultPaused
+
+		case err := <-doneChan:
+			if err != nil {
+				return UploadResultError
+			}
+
+			return UploadResultSuccess
+		}
+	}
+}
+
+func (u *UploadManager) ValidatePauseUpload() error {
 	if !u.isUploading {
 		return ErrPausedOnNoOngoingUpload
 	}
@@ -52,12 +70,22 @@ func (u *UploadManager) ValidatePause() error {
 	return nil
 }
 
-func (u *UploadManager) ValidateResume() error {
+func (u *UploadManager) PauseUpload() error {
+	if err := u.ValidatePauseUpload(); err != nil {
+		return err
+	}
+
+	u.ctxCancel()
+
+	return nil
+}
+
+func (u *UploadManager) ValidateResumeUpload() error {
 	if u.isUploading {
 		return ErrResumedOnOngoingUpload
 	}
 
-	if u.hasNoExistingupload() {
+	if !u.hasExistingupload() {
 		return ErrResumedOnNonExistingUpload
 	}
 
@@ -68,44 +96,8 @@ func (u *UploadManager) ValidateResume() error {
 	return nil
 }
 
-func (u *UploadManager) Upload(url string, filePath FilePath, uploadProgressChan chan<- UploadProgress) UploadResult {
-	u.isUploading = true
-	defer func() { u.isUploading = false }()
-
-	u.ctx, u.ctxCancel = context.WithCancel(context.Background())
-
-	doneChan := make(chan struct{})
-
-	errorOccured := true
-
-	go func() {
-		log.Printf("Uploading %s to %s\n", url, filePath)
-		for i := range 5 {
-			time.Sleep(5 * time.Second)
-			uploadProgressChan <- UploadProgress{
-				PercentageUploaded: 100 * i / 5,
-			}
-		}
-		// simulate file upload
-		close(doneChan)
-	}()
-
-	for {
-		select {
-		case <-u.ctx.Done():
-			return UploadResultPaused
-		case <-doneChan:
-			if errorOccured {
-				return UploadResultError
-			} else {
-				return UploadResultSuccess
-			}
-		}
-	}
-}
-
-func (u *UploadManager) hasNoExistingupload() bool {
-	return false
+func (u *UploadManager) hasExistingupload() bool {
+	return true
 }
 
 func (u *UploadManager) fileHasChangedSinceLastUpload() bool {

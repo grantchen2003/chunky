@@ -44,7 +44,10 @@ func (u *UploadManager) Upload(url string, filePath FilePath, uploadProgressChan
 
 	go func() {
 		defer close(doneChan)
-		doneChan <- upload(url, filePath, uploadProgressChan)
+
+		err := upload(url, filePath, uploadProgressChan)
+
+		doneChan <- err
 	}()
 
 	for {

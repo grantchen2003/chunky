@@ -9,7 +9,7 @@ type Client struct {
 	url      string
 
 	uploadNotifier *internal.UploadNotifier
-	uploader       *internal.Uploader
+	uploadManager  *internal.UploadManager
 }
 
 func NewClient(url string, filePathStr string) *Client {
@@ -18,12 +18,12 @@ func NewClient(url string, filePathStr string) *Client {
 		url:      url,
 
 		uploadNotifier: internal.NewUploadNotifier(),
-		uploader:       internal.NewUploader(),
+		uploadManager:  internal.NewUploadManager(),
 	}
 }
 
 func (c *Client) Upload() {
-	if err := c.uploader.ValidateUpload(); err != nil {
+	if err := c.uploadManager.ValidateUpload(); err != nil {
 		c.uploadNotifier.UserErrorChan <- err
 	}
 
@@ -31,15 +31,15 @@ func (c *Client) Upload() {
 }
 
 func (c *Client) Pause() {
-	if err := c.uploader.ValidatePause(); err != nil {
+	if err := c.uploadManager.ValidatePause(); err != nil {
 		c.uploadNotifier.UserErrorChan <- err
 	}
 
-	c.uploader.PauseUpload()
+	c.uploadManager.PauseUpload()
 }
 
 func (c *Client) Resume() {
-	if err := c.uploader.ValidateResume(); err != nil {
+	if err := c.uploadManager.ValidateResume(); err != nil {
 		c.uploadNotifier.UserErrorChan <- err
 	}
 
@@ -65,14 +65,14 @@ func (c *Client) UserErrorChan() <-chan error {
 func (c *Client) upload(uploadStatus internal.UploadStatus) {
 	c.uploadNotifier.StatusChan <- uploadStatus
 
-	uploadResult := c.uploader.Upload(c.url, c.filePath, c.uploadNotifier.ProgressChan)
+	uploadResult := c.uploadManager.Upload(c.url, c.filePath, c.uploadNotifier.ProgressChan)
 
-	c.uploadNotifier.StatusChan <- uploadResultToUploadStatus(uploadResult)
+	c.uploadNotifier.StatusChan <- determineUploadStatus(uploadResult)
 
 	c.uploadNotifier.Close()
 }
 
-func uploadResultToUploadStatus(uploadResult internal.UploadResult) internal.UploadStatus {
+func determineUploadStatus(uploadResult internal.UploadResult) internal.UploadStatus {
 	switch uploadResult {
 	case internal.UploadResultSuccess:
 		return internal.UploadCompleted

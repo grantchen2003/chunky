@@ -2,7 +2,6 @@ package internal
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"time"
 )
@@ -18,26 +17,26 @@ const (
 	UploadResultError
 )
 
-type Uploader struct {
+type UploadManager struct {
 	ctx         context.Context
 	ctxCancel   context.CancelFunc
 	isUploading bool
 }
 
-func NewUploader() *Uploader {
+func NewUploadManager() *UploadManager {
 	ctx, ctxCancel := context.WithCancel(context.Background())
-	return &Uploader{
+	return &UploadManager{
 		ctx:         ctx,
 		ctxCancel:   ctxCancel,
 		isUploading: false,
 	}
 }
 
-func (u *Uploader) PauseUpload() {
+func (u *UploadManager) PauseUpload() {
 	u.ctxCancel()
 }
 
-func (u *Uploader) ValidateUpload() error {
+func (u *UploadManager) ValidateUpload() error {
 	if u.isUploading {
 		return ErrPausedOnNoOngoingUpload
 	}
@@ -45,8 +44,7 @@ func (u *Uploader) ValidateUpload() error {
 	return nil
 }
 
-func (u *Uploader) ValidatePause() error {
-	fmt.Println(u)
+func (u *UploadManager) ValidatePause() error {
 	if !u.isUploading {
 		return ErrPausedOnNoOngoingUpload
 	}
@@ -54,7 +52,7 @@ func (u *Uploader) ValidatePause() error {
 	return nil
 }
 
-func (u *Uploader) ValidateResume() error {
+func (u *UploadManager) ValidateResume() error {
 	if u.isUploading {
 		return ErrResumedOnOngoingUpload
 	}
@@ -70,7 +68,7 @@ func (u *Uploader) ValidateResume() error {
 	return nil
 }
 
-func (u *Uploader) Upload(url string, filePath FilePath, uploadProgressChan chan<- UploadProgress) UploadResult {
+func (u *UploadManager) Upload(url string, filePath FilePath, uploadProgressChan chan<- UploadProgress) UploadResult {
 	u.isUploading = true
 	defer func() { u.isUploading = false }()
 
@@ -106,10 +104,10 @@ func (u *Uploader) Upload(url string, filePath FilePath, uploadProgressChan chan
 	}
 }
 
-func (u *Uploader) hasNoExistingupload() bool {
+func (u *UploadManager) hasNoExistingupload() bool {
 	return false
 }
 
-func (u *Uploader) fileHasChangedSinceLastUpload() bool {
+func (u *UploadManager) fileHasChangedSinceLastUpload() bool {
 	return true
 }

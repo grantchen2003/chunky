@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-// NEED TO REFACTOR
+// NEED TO REFACTOR AND PASS CTX DOWN TO PREVENT GOROUTINE LEAKS
 type UploadManager struct {
 	ctx       context.Context
 	ctxCancel context.CancelFunc

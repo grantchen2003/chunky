@@ -64,7 +64,6 @@ func (u *Uploader) Upload() error {
 }
 
 func (u *Uploader) initiateUploadSession(fileHash []byte) (string, error) {
-
 	fileInfo, err := os.Stat(u.filePath)
 	if err != nil {
 		return "", err

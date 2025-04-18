@@ -31,14 +31,7 @@ func (u *Uploader) Upload() error {
 		return err
 	}
 
-	fileInfo, err := os.Stat(u.filePath)
-	if err != nil {
-		return err
-	}
-
-	totalFileSizeBytes := fileInfo.Size()
-
-	sessionId, err := initiateUploadSession(fileHash, int(totalFileSizeBytes))
+	sessionId, err := u.initiateUploadSession(fileHash)
 	if err != nil {
 		return err
 	}
@@ -70,7 +63,15 @@ func (u *Uploader) Upload() error {
 	return nil
 }
 
-func initiateUploadSession(fileHash []byte, totalFileSizeBytes int) (string, error) {
+func (u *Uploader) initiateUploadSession(fileHash []byte) (string, error) {
+
+	fileInfo, err := os.Stat(u.filePath)
+	if err != nil {
+		return "", err
+	}
+
+	totalFileSizeBytes := fileInfo.Size()
+
 	fmt.Printf("Initiating upload session for totalFileSizeBytes: %d and fileHash: %v\n", totalFileSizeBytes, fileHash)
 	sessionId := "t8y3euagvkqp8fuo"
 	return sessionId, nil

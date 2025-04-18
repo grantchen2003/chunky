@@ -7,21 +7,19 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-// NEED TO REFACTOR AND IMPLEMENT
 type SqliteUploadSessionStore struct {
 	db *sql.DB
 }
 
 func NewSqliteUploadSessionStore() (*SqliteUploadSessionStore, error) {
-	dbPath := "example.db"
+	dbPath := "chunky.db"
 	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open DB: %w", err)
 	}
 
-	// Create table if it doesn't exist
 	createStmt := `
-	CREATE TABLE IF NOT EXISTS upload_sessions (
+	CREATE TABLE IF NOT EXISTS uploads (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		session_id TEXT NOT NULL,
 		url TEXT NOT NULL,
@@ -39,7 +37,7 @@ func NewSqliteUploadSessionStore() (*SqliteUploadSessionStore, error) {
 
 func (s *SqliteUploadSessionStore) Store(sessionId string, url string, filePath string, fileHash []byte) error {
 	insertStmt := `
-	INSERT INTO upload_sessions (session_id, url, file_path, file_hash)
+	INSERT INTO uploads (session_id, url, file_path, file_hash)
 	VALUES (?, ?, ?, ?);
 	`
 	_, err := s.db.Exec(insertStmt, sessionId, url, filePath, fileHash)
@@ -50,10 +48,10 @@ func (s *SqliteUploadSessionStore) Store(sessionId string, url string, filePath 
 }
 
 func (s *SqliteUploadSessionStore) GetSessionIdAndHash(url string, filePath string) (sessionId string, fileHash []byte, err error) {
-	queryStmt := `SELECT session_id, url, file_hash FROM upload_sessions WHERE url = ? AND file_path = ?`
+	queryStmt := `SELECT session_id, file_hash FROM uploads WHERE url = ? AND file_path = ?`
 	row := s.db.QueryRow(queryStmt, url, filePath)
 
-	err = row.Scan(&sessionId, &url, &fileHash)
+	err = row.Scan(&sessionId, &fileHash)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return "", nil, fmt.Errorf("no session found for file path: %s", filePath)

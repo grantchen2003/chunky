@@ -118,37 +118,50 @@ func (u *UploadManager) ValidateResumeUpload() error {
 }
 
 func (u *UploadManager) hasExistingUpload() bool {
-	sqliteSessionStore, err := NewSqliteUploadSessionStore()
+	uploadExists, err := func() (bool, error) {
+		sqliteSessionStore, err := NewSqliteUploadSessionStore()
+		if err != nil {
+			return false, err
+		}
+		defer sqliteSessionStore.Close()
+
+		_, _, err = sqliteSessionStore.GetSessionIdAndHash(u.filePath, u.url)
+
+		return err != nil, nil
+
+	}()
+
 	if err != nil {
-		return false // default to false if program fuck up
+		return false
 	}
-	defer sqliteSessionStore.Close()
 
-	_, _, err = sqliteSessionStore.GetSessionIdAndHash(u.filePath, u.url)
-
-	return err != nil
+	return uploadExists
 }
 
 func (u *UploadManager) fileHasChangedSinceLastUpload() bool {
-	sqliteSessionStore, err := NewSqliteUploadSessionStore()
-	if err != nil {
-		return true // default to true if program fuck up
-	}
-	defer sqliteSessionStore.Close()
+	hasChanged, err := func() (bool, error) {
+		sqliteSessionStore, err := NewSqliteUploadSessionStore()
+		if err != nil {
+			return false, err
+		}
+		defer sqliteSessionStore.Close()
 
-	_, savedFileHash, err := sqliteSessionStore.GetSessionIdAndHash(u.filePath, u.url)
+		_, savedFileHash, err := sqliteSessionStore.GetSessionIdAndHash(u.url, u.filePath)
+		if err != nil {
+			return false, err
+		}
+
+		currFileHash, err := hashFile(u.filePath)
+		if err != nil {
+			return false, err
+		}
+
+		return !bytes.Equal(currFileHash, savedFileHash), nil
+	}()
+
 	if err != nil {
 		return true
 	}
 
-	currFileHash, err := hashFile(u.filePath)
-	if err != nil {
-		return true
-	}
-
-	if !bytes.Equal(currFileHash, savedFileHash) {
-		return true
-	}
-
-	return false
+	return hasChanged
 }

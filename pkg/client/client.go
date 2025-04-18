@@ -43,9 +43,9 @@ func (c *Client) Pause() error {
 		return err
 	}
 
-	c.uploadManager.PauseUpload()
+	err := c.uploadManager.PauseUpload()
 
-	return nil
+	return err
 }
 
 func (c *Client) Resume() error {

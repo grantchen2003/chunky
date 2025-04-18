@@ -1,9 +1,9 @@
 package internal
 
-type UploadResult int
+type UploadResult string
 
 const (
-	UploadResultSuccess = iota
-	UploadResultPaused
-	UploadResultError
+	UploadResultSuccess UploadResult = "Success"
+	UploadResultPaused  UploadResult = "Paused"
+	UploadResultError   UploadResult = "Error"
 )

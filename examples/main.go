@@ -21,25 +21,19 @@ func handleUserCommands(client *chunky.Client) {
 
 		switch input {
 		case "upload":
-			
-				if err := client.Upload(); err != nil {
-					fmt.Printf("User error: %v\n", err)
-				}
-			
+			if err := client.Upload(); err != nil {
+				fmt.Printf("User error: %v\n", err)
+			}
 
 		case "pause":
-		
-				if err := client.Pause(); err != nil {
-					fmt.Printf("User error: %v\n", err)
-				}
-			
+			if err := client.Pause(); err != nil {
+				fmt.Printf("User error: %v\n", err)
+			}
 
 		case "resume":
-		
-				if err := client.Resume(); err != nil {
-					fmt.Printf("User error: %v\n", err)
-				}
-		
+			if err := client.Resume(); err != nil {
+				fmt.Printf("User error: %v\n", err)
+			}
 
 		case "exit":
 			fmt.Println("Exiting...")

@@ -25,7 +25,6 @@ func NewUploader(url string, filePath string, uploadProgressChan chan<- UploadPr
 	}
 }
 
-// simulate file upload
 func (u *Uploader) Upload() error {
 	fileHash, err := hashFile(u.filePath)
 	if err != nil {
@@ -44,14 +43,15 @@ func (u *Uploader) Upload() error {
 		return err
 	}
 
-	bfr, err := NewBufferedFileReader(u.filePath, 3)
+	bfr, err := NewBufferedFileReader(u.filePath)
 	if err != nil {
 		return err
 	}
 	defer bfr.Close()
 
 	var startByte int
-	for chunk := range bfr.ReadChunk() {
+	bufferSizeBytes := 3
+	for chunk := range bfr.ReadChunk(bufferSizeBytes) {
 		chunkSize := len(chunk)
 		endByte := startByte + chunkSize - 1
 		err := u.uploadFileChunk(sessionId, fileHash, chunk, startByte, endByte)

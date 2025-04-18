@@ -8,28 +8,26 @@ import (
 )
 
 type BufferedFileReader struct {
-	file            *os.File
-	bufferSizeBytes int
-	reader          *bufio.Reader
+	file   *os.File
+	reader *bufio.Reader
 }
 
-func NewBufferedFileReader(filePath string, bufferSizeBytes int) (*BufferedFileReader, error) {
+func NewBufferedFileReader(filePath string) (*BufferedFileReader, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, err
 	}
 
 	return &BufferedFileReader{
-		file:            file,
-		bufferSizeBytes: bufferSizeBytes,
-		reader:          bufio.NewReader(file),
+		file:   file,
+		reader: bufio.NewReader(file),
 	}, nil
 }
 
-func (bfr *BufferedFileReader) ReadChunk() iter.Seq2[[]byte, error] {
+func (bfr *BufferedFileReader) ReadChunk(bufferSizeBytes int) iter.Seq2[[]byte, error] {
 	return func(yield func([]byte, error) bool) {
 		for {
-			buffer := make([]byte, bfr.bufferSizeBytes)
+			buffer := make([]byte, bufferSizeBytes)
 
 			bytesRead, err := bfr.reader.Read(buffer)
 			if err != nil {

@@ -79,12 +79,12 @@ func (u *Uploader) initiateUploadSession(fileHash []byte) (string, error) {
 
 // need to acutally implement
 func (u *Uploader) uploadFileChunk(sessionId string, fileHash []byte, chunk []byte, startByte int, endByte int) error {
-	fmt.Printf("Uploading to %s, sessionId: %s, fileHash: %v, chunk: %s, startByte: %d, endByte: %d\n", u.url, sessionId, fileHash, chunk, startByte, endByte)
+	fmt.Printf("Uploading to %s, sessionId: %s, fileHash: %v, startByte: %d, endByte: %d\n", u.url, sessionId, fileHash, startByte, endByte)
 	time.Sleep(1 * time.Second)
 
-	errPercentage := 50
+	uploadFailPercentageChance := 20
 	randomNumber := rand.Intn(100)
-	if randomNumber < errPercentage {
+	if randomNumber < uploadFailPercentageChance {
 		return errors.New("Failed to upload")
 	} else {
 		return nil

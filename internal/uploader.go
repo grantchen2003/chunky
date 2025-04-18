@@ -1,18 +1,79 @@
 package internal
 
 import (
-	"log"
+	"fmt"
+	"os"
 	"time"
 )
 
-// simulate file upload
-func upload(url string, filePath FilePath, uploadProgressChan chan<- UploadProgress) error {
-	log.Printf("Uploading %s to %s\n", url, filePath)
-	for i := range 5 {
-		time.Sleep(5 * time.Second)
-		uploadProgressChan <- UploadProgress{
-			PercentageUploaded: 100 * i / 5,
-		}
+type Uploader struct {
+	url                 string
+	filePath            string
+	uploadProgressChan  chan<- UploadProgress
+	uploadSessionStorer UploadSessionStorer
+}
+
+func NewUploader(url string, filePath string, uploadProgressChan chan<- UploadProgress, uploadSessionStorer UploadSessionStorer) *Uploader {
+	return &Uploader{
+		url:                 url,
+		filePath:            filePath,
+		uploadProgressChan:  uploadProgressChan,
+		uploadSessionStorer: uploadSessionStorer,
 	}
+}
+
+// simulate file upload
+func (u *Uploader) Upload() error {
+	fileHash, err := hashFile(u.filePath)
+	if err != nil {
+		return err
+	}
+
+	fileInfo, err := os.Stat(u.filePath)
+	if err != nil {
+		return err
+	}
+
+	totalFileSizeBytes := fileInfo.Size()
+
+	sessionId, err := initiateUploadSession(fileHash, int(totalFileSizeBytes))
+	if err != nil {
+		return err
+	}
+
+	bfr, err := NewBufferedFileReader(u.filePath, 3)
+	if err != nil {
+		return err
+	}
+
+	var startByte int
+	for chunk := range bfr.ReadChunk() {
+		chunkSize := len(chunk)
+		endByte := startByte + chunkSize - 1
+		err := u.uploadFileChunk(sessionId, fileHash, chunk, startByte, endByte)
+		if err != nil {
+			return err
+		}
+		startByte = endByte + 1
+
+		u.uploadProgressChan <- UploadProgress{
+			UploadedBytes: chunkSize,
+		}
+
+		u.uploadSessionStorer.Store(sessionId, u.filePath, fileHash)
+	}
+
+	return nil
+}
+
+func initiateUploadSession(fileHash []byte, totalFileSizeBytes int) (string, error) {
+	fmt.Printf("Initiating upload session for totalFileSizeBytes: %d and fileHash: %v\n", totalFileSizeBytes, fileHash)
+	sessionId := "t8y3euagvkqp8fuo"
+	return sessionId, nil
+}
+
+func (u *Uploader) uploadFileChunk(sessionId string, fileHash []byte, chunk []byte, startByte int, endByte int) error {
+	fmt.Printf("Uploading to %s, sessionId: %s, fileHash: %v, chunk: %v, startByte: %d, endByte: %d\n", u.url, sessionId, fileHash, chunk, startByte, endByte)
+	time.Sleep(1 * time.Second)
 	return nil
 }

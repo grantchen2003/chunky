@@ -5,16 +5,16 @@ import (
 )
 
 type Client struct {
-	filePath internal.FilePath
+	filePath string
 	url      string
 
 	uploadNotifier *internal.UploadNotifier
 	uploadManager  *internal.UploadManager
 }
 
-func NewClient(url string, filePathStr string) *Client {
+func NewClient(url string, filePath string) *Client {
 	return &Client{
-		filePath: internal.FilePath(filePathStr),
+		filePath: filePath,
 		url:      url,
 
 		uploadNotifier: internal.NewUploadNotifier(),

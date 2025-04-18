@@ -30,7 +30,7 @@ func (u *UploadManager) ValidateUpload() error {
 	return nil
 }
 
-func (u *UploadManager) Upload(url string, filePath FilePath, uploadProgressChan chan<- UploadProgress) UploadResult {
+func (u *UploadManager) Upload(url string, filePath string, uploadProgressChan chan<- UploadProgress) UploadResult {
 	if err := u.ValidateUpload(); err != nil {
 		return UploadResultError
 	}
@@ -45,7 +45,8 @@ func (u *UploadManager) Upload(url string, filePath FilePath, uploadProgressChan
 	go func() {
 		defer close(doneChan)
 
-		err := upload(url, filePath, uploadProgressChan)
+		uploader := NewUploader(url, filePath, uploadProgressChan, NewSqliteUploadSessionStorer())
+		err := uploader.Upload()
 
 		doneChan <- err
 	}()
@@ -104,5 +105,5 @@ func (u *UploadManager) hasExistingupload() bool {
 }
 
 func (u *UploadManager) fileHasChangedSinceLastUpload() bool {
-	return true
+	return false
 }

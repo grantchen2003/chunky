@@ -28,7 +28,6 @@ func NewBufferedFileReader(filePath string, bufferSizeBytes int) (*BufferedFileR
 
 func (bfr *BufferedFileReader) ReadChunk() iter.Seq2[[]byte, error] {
 	return func(yield func([]byte, error) bool) {
-
 		for {
 			buffer := make([]byte, bfr.bufferSizeBytes)
 
@@ -47,4 +46,8 @@ func (bfr *BufferedFileReader) ReadChunk() iter.Seq2[[]byte, error] {
 			}
 		}
 	}
+}
+
+func (bfr *BufferedFileReader) Close() {
+	bfr.file.Close()
 }

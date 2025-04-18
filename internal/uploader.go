@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// NEED TO REFACTOR
 type Uploader struct {
 	url                 string
 	filePath            string
@@ -45,6 +46,7 @@ func (u *Uploader) Upload() error {
 	if err != nil {
 		return err
 	}
+	defer bfr.Close()
 
 	var startByte int
 	for chunk := range bfr.ReadChunk() {

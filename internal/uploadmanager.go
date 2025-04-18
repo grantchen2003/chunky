@@ -4,6 +4,7 @@ import (
 	"context"
 )
 
+// NEED TO REFACTOR
 type UploadManager struct {
 	ctx       context.Context
 	ctxCancel context.CancelFunc

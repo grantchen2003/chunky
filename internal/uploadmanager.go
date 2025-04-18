@@ -1,7 +1,9 @@
 package internal
 
 import (
+	"bytes"
 	"context"
+	"fmt"
 )
 
 // NEED TO REFACTOR
@@ -9,16 +11,20 @@ type UploadManager struct {
 	ctx       context.Context
 	ctxCancel context.CancelFunc
 
+	url         string
+	filePath    string
 	isUploading bool
 }
 
-func NewUploadManager() *UploadManager {
+func NewUploadManager(url string, filePath string) *UploadManager {
 	ctx, ctxCancel := context.WithCancel(context.Background())
 
 	return &UploadManager{
 		ctx:       ctx,
 		ctxCancel: ctxCancel,
 
+		url:         url,
+		filePath:    filePath,
 		isUploading: false,
 	}
 }
@@ -31,7 +37,7 @@ func (u *UploadManager) ValidateUpload() error {
 	return nil
 }
 
-func (u *UploadManager) Upload(url string, filePath string, uploadProgressChan chan<- UploadProgress) UploadResult {
+func (u *UploadManager) Upload(uploadProgressChan chan<- UploadProgress) UploadResult {
 	if err := u.ValidateUpload(); err != nil {
 		return UploadResultError
 	}
@@ -46,8 +52,17 @@ func (u *UploadManager) Upload(url string, filePath string, uploadProgressChan c
 	go func() {
 		defer close(doneChan)
 
-		uploader := NewUploader(url, filePath, uploadProgressChan, NewSqliteUploadSessionStorer())
-		err := uploader.Upload()
+		err := func() error {
+			sqliteSessionStore, err := NewSqliteUploadSessionStore()
+			if err != nil {
+				return err
+			}
+			defer sqliteSessionStore.Close()
+
+			uploader := NewUploader(u.url, u.filePath, uploadProgressChan, sqliteSessionStore)
+			err = uploader.Upload()
+			return err
+		}()
 
 		doneChan <- err
 	}()
@@ -59,6 +74,7 @@ func (u *UploadManager) Upload(url string, filePath string, uploadProgressChan c
 
 		case err := <-doneChan:
 			if err != nil {
+				fmt.Println(err)
 				return UploadResultError
 			}
 
@@ -90,7 +106,7 @@ func (u *UploadManager) ValidateResumeUpload() error {
 		return ErrResumedOnOngoingUpload
 	}
 
-	if !u.hasExistingupload() {
+	if !u.hasExistingUpload() {
 		return ErrResumedOnNonExistingUpload
 	}
 
@@ -101,10 +117,38 @@ func (u *UploadManager) ValidateResumeUpload() error {
 	return nil
 }
 
-func (u *UploadManager) hasExistingupload() bool {
-	return true
+func (u *UploadManager) hasExistingUpload() bool {
+	sqliteSessionStore, err := NewSqliteUploadSessionStore()
+	if err != nil {
+		return false // default to false if program fuck up
+	}
+	defer sqliteSessionStore.Close()
+
+	_, _, err = sqliteSessionStore.GetSessionIdAndHash(u.filePath, u.url)
+
+	return err != nil
 }
 
 func (u *UploadManager) fileHasChangedSinceLastUpload() bool {
+	sqliteSessionStore, err := NewSqliteUploadSessionStore()
+	if err != nil {
+		return true // default to true if program fuck up
+	}
+	defer sqliteSessionStore.Close()
+
+	_, savedFileHash, err := sqliteSessionStore.GetSessionIdAndHash(u.filePath, u.url)
+	if err != nil {
+		return true
+	}
+
+	currFileHash, err := hashFile(u.filePath)
+	if err != nil {
+		return true
+	}
+
+	if !bytes.Equal(currFileHash, savedFileHash) {
+		return true
+	}
+
 	return false
 }

@@ -64,7 +64,7 @@ func (u *Uploader) Upload() error {
 			UploadedBytes: chunkSize,
 		}
 
-		u.uploadSessionStorer.Store(sessionId, u.filePath, fileHash)
+		u.uploadSessionStorer.Store(sessionId, u.url, u.filePath, fileHash)
 	}
 
 	return nil

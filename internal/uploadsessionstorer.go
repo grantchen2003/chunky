@@ -1,5 +1,7 @@
 package internal
 
 type UploadSessionStorer interface {
-	Store(sessionId string, filePath string, fileHash []byte) error
+	Close() error
+	Store(sessionId string, url string, filePath string, fileHash []byte) error
+	GetSessionIdAndHash(url string, filePath string) (string, []byte, error)
 }

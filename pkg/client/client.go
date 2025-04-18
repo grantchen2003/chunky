@@ -5,20 +5,14 @@ import (
 )
 
 type Client struct {
-	filePath string
-	url      string
-
 	uploadNotifier *internal.UploadNotifier
 	uploadManager  *internal.UploadManager
 }
 
 func NewClient(url string, filePath string) *Client {
 	return &Client{
-		filePath: filePath,
-		url:      url,
-
 		uploadNotifier: internal.NewUploadNotifier(),
-		uploadManager:  internal.NewUploadManager(),
+		uploadManager:  internal.NewUploadManager(url, filePath),
 	}
 }
 
@@ -29,7 +23,7 @@ func (c *Client) Upload() error {
 
 	c.uploadNotifier.StatusChan <- internal.UploadStarted
 
-	uploadResult := c.uploadManager.Upload(c.url, c.filePath, c.uploadNotifier.ProgressChan)
+	uploadResult := c.uploadManager.Upload(c.uploadNotifier.ProgressChan)
 
 	c.uploadNotifier.ResultChan <- uploadResult
 
@@ -55,7 +49,7 @@ func (c *Client) Resume() error {
 
 	c.uploadNotifier.StatusChan <- internal.UploadResumed
 
-	uploadResult := c.uploadManager.Upload(c.url, c.filePath, c.uploadNotifier.ProgressChan)
+	uploadResult := c.uploadManager.Upload(c.uploadNotifier.ProgressChan)
 
 	c.uploadNotifier.ResultChan <- uploadResult
 

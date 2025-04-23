@@ -6,12 +6,6 @@ import (
 	"github.com/grantchen2003/chunky/internal/byterange"
 )
 
-type UploadEndpoints struct {
-	InitiateUploadSession string
-	ByteRangesToUpload    string
-	UploadFileChunk       string
-}
-
 // need to implement
 type UploadRequester struct {
 	baseUrl   string
@@ -26,6 +20,8 @@ func NewUploadRequester(baseUrl string, endpoints *UploadEndpoints) *UploadReque
 			UploadFileChunk:       "/uploadFileChunk",
 		}
 	}
+
+	endpoints.PopulateEmptyFields()
 
 	return &UploadRequester{
 		baseUrl:   baseUrl,

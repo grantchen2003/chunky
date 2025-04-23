@@ -1,7 +1,10 @@
 package internal
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"net/http"
 
 	"github.com/grantchen2003/chunky/internal/byterange"
 )
@@ -29,10 +32,33 @@ func NewUploadRequester(baseUrl string, endpoints *UploadEndpoints) *UploadReque
 	}
 }
 
+type InitiateUploadSessionPayload struct {
+	FileHash           []byte `json:"fileHahs"`
+	TotalFileSizeBytes int    `json:"TotalFileSizeBytes"`
+}
+
+type InitiateUploadSessionResponse struct {
+	SessionId string
+}
+
 func (ur UploadRequester) makeInitiateUploadSessionRequest(fileHash []byte, totalFileSizeBytes int) (string, error) {
-	fmt.Printf("Initiating upload session for totalFileSizeBytes: %d and fileHash: %v\n", totalFileSizeBytes, fileHash)
-	sessionId := "t8y3euagvkqp8fuo"
-	return sessionId, nil
+	payload := InitiateUploadSessionPayload{FileHash: fileHash, TotalFileSizeBytes: totalFileSizeBytes}
+
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		panic(err)
+	}
+
+	resp, err := http.Post(fmt.Sprintf("%s%s", ur.baseUrl, ur.endpoints.InitiateUploadSession), "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+
+	var response InitiateUploadSessionResponse
+	json.NewDecoder(resp.Body).Decode(&response)
+
+	return response.SessionId, nil
 }
 
 func (ur UploadRequester) makeByteRangesToUploadRequest(sessionId string, fileHash []byte) ([]byterange.ByteRange, error) {

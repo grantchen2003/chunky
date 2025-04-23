@@ -6,8 +6,8 @@ import (
 )
 
 type Client struct {
-	uploadNotifier *internal.UploadNotifier
-	uploadManager  *internal.UploadManager
+	uploadNotifier    *internal.UploadNotifier
+	uploadCoordinator *internal.UploadCoordinator
 }
 
 func NewClient(url string, filePath string) (*Client, error) {
@@ -19,19 +19,19 @@ func NewClient(url string, filePath string) (*Client, error) {
 	uploadValidator := internal.NewUploadValidator(url, filePath, uploadStorer)
 
 	return &Client{
-		uploadNotifier: internal.NewUploadNotifier(),
-		uploadManager:  internal.NewUploadManager(url, filePath, uploadStorer, uploadValidator),
+		uploadNotifier:    internal.NewUploadNotifier(),
+		uploadCoordinator: internal.NewUploadCoordinator(url, filePath, uploadStorer, uploadValidator),
 	}, nil
 }
 
 func (c *Client) Upload() error {
-	if err := c.uploadManager.ValidateUpload(); err != nil {
+	if err := c.uploadCoordinator.ValidateUpload(); err != nil {
 		return err
 	}
 
 	c.uploadNotifier.StatusChan <- internal.UploadStarted
 
-	uploadResult := c.uploadManager.Upload(c.uploadNotifier.ProgressChan)
+	uploadResult := c.uploadCoordinator.Upload(c.uploadNotifier.ProgressChan)
 
 	c.uploadNotifier.ResultChan <- uploadResult
 
@@ -41,23 +41,23 @@ func (c *Client) Upload() error {
 }
 
 func (c *Client) Pause() error {
-	if err := c.uploadManager.ValidatePauseUpload(); err != nil {
+	if err := c.uploadCoordinator.ValidatePauseUpload(); err != nil {
 		return err
 	}
 
-	err := c.uploadManager.PauseUpload()
+	err := c.uploadCoordinator.PauseUpload()
 
 	return err
 }
 
 func (c *Client) Resume() error {
-	if err := c.uploadManager.ValidateResumeUpload(); err != nil {
+	if err := c.uploadCoordinator.ValidateResumeUpload(); err != nil {
 		return err
 	}
 
 	c.uploadNotifier.StatusChan <- internal.UploadResumed
 
-	uploadResult := c.uploadManager.ResumeUpload(c.uploadNotifier.ProgressChan)
+	uploadResult := c.uploadCoordinator.ResumeUpload(c.uploadNotifier.ProgressChan)
 
 	c.uploadNotifier.ResultChan <- uploadResult
 

@@ -8,7 +8,7 @@ import (
 
 // NEED TO REFACTOR AND PASS CTX DOWN TO PREVENT GOROUTINE LEAKS
 // figure out the interface pointer thing, what should be pointer and what shouldnt be (why cant i have pointer to interface passed as param)
-type UploadManager struct {
+type UploadCoordinator struct {
 	ctx       context.Context
 	ctxCancel context.CancelFunc
 
@@ -19,10 +19,10 @@ type UploadManager struct {
 	uploadValidator *UploadValidator
 }
 
-func NewUploadManager(url string, filePath string, uploadStorer us.UploadStorer, uploadValidator *UploadValidator) *UploadManager {
+func NewUploadCoordinator(url string, filePath string, uploadStorer us.UploadStorer, uploadValidator *UploadValidator) *UploadCoordinator {
 	ctx, ctxCancel := context.WithCancel(context.Background())
 
-	return &UploadManager{
+	return &UploadCoordinator{
 		ctx:       ctx,
 		ctxCancel: ctxCancel,
 
@@ -34,7 +34,7 @@ func NewUploadManager(url string, filePath string, uploadStorer us.UploadStorer,
 	}
 }
 
-func (u *UploadManager) ValidateUpload() error {
+func (u *UploadCoordinator) ValidateUpload() error {
 	if u.isUploading {
 		return ErrPausedOnNoOngoingUpload
 	}
@@ -42,7 +42,7 @@ func (u *UploadManager) ValidateUpload() error {
 	return nil
 }
 
-func (u *UploadManager) Upload(uploadProgressChan chan<- UploadProgress) UploadResult {
+func (u *UploadCoordinator) Upload(uploadProgressChan chan<- UploadProgress) UploadResult {
 	if err := u.ValidateUpload(); err != nil {
 		return UploadResultError
 	}
@@ -58,7 +58,7 @@ func (u *UploadManager) Upload(uploadProgressChan chan<- UploadProgress) UploadR
 	return u.runWithUploadLifeCycle(uploadTask)
 }
 
-func (u *UploadManager) ValidatePauseUpload() error {
+func (u *UploadCoordinator) ValidatePauseUpload() error {
 	if !u.isUploading {
 		return ErrPausedOnNoOngoingUpload
 	}
@@ -66,7 +66,7 @@ func (u *UploadManager) ValidatePauseUpload() error {
 	return nil
 }
 
-func (u *UploadManager) PauseUpload() error {
+func (u *UploadCoordinator) PauseUpload() error {
 	if err := u.ValidatePauseUpload(); err != nil {
 		return err
 	}
@@ -76,7 +76,7 @@ func (u *UploadManager) PauseUpload() error {
 	return nil
 }
 
-func (u *UploadManager) ValidateResumeUpload() error {
+func (u *UploadCoordinator) ValidateResumeUpload() error {
 	if u.isUploading {
 		return ErrResumedOnOngoingUpload
 	}
@@ -92,7 +92,7 @@ func (u *UploadManager) ValidateResumeUpload() error {
 	return nil
 }
 
-func (u *UploadManager) ResumeUpload(uploadProgressChan chan<- UploadProgress) UploadResult {
+func (u *UploadCoordinator) ResumeUpload(uploadProgressChan chan<- UploadProgress) UploadResult {
 	if err := u.ValidateResumeUpload(); err != nil {
 		return UploadResultError
 	}
@@ -108,7 +108,7 @@ func (u *UploadManager) ResumeUpload(uploadProgressChan chan<- UploadProgress) U
 	return u.runWithUploadLifeCycle(resumeUploadTask)
 }
 
-func (u *UploadManager) runWithUploadLifeCycle(uploadTask func() error) UploadResult {
+func (u *UploadCoordinator) runWithUploadLifeCycle(uploadTask func() error) UploadResult {
 	u.isUploading = true
 	defer func() { u.isUploading = false }()
 

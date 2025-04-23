@@ -32,17 +32,13 @@ func NewUploadRequester(baseUrl string, endpoints *UploadEndpoints) *UploadReque
 	}
 }
 
-type InitiateUploadSessionPayload struct {
-	FileHash           []byte `json:"fileHahs"`
-	TotalFileSizeBytes int    `json:"TotalFileSizeBytes"`
-}
-
-type InitiateUploadSessionResponse struct {
-	SessionId string
-}
-
 func (ur UploadRequester) makeInitiateUploadSessionRequest(fileHash []byte, totalFileSizeBytes int) (string, error) {
-	payload := InitiateUploadSessionPayload{FileHash: fileHash, TotalFileSizeBytes: totalFileSizeBytes}
+	type Payload struct {
+		FileHash           []byte `json:"fileHahs"`
+		TotalFileSizeBytes int    `json:"TotalFileSizeBytes"`
+	}
+
+	payload := Payload{FileHash: fileHash, TotalFileSizeBytes: totalFileSizeBytes}
 
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
@@ -55,32 +51,86 @@ func (ur UploadRequester) makeInitiateUploadSessionRequest(fileHash []byte, tota
 	}
 	defer resp.Body.Close()
 
-	var response InitiateUploadSessionResponse
+	type Response struct {
+		SessionId string `json:"sessionId"`
+	}
+
+	var response Response
+
 	json.NewDecoder(resp.Body).Decode(&response)
 
 	return response.SessionId, nil
 }
 
 func (ur UploadRequester) makeByteRangesToUploadRequest(sessionId string, fileHash []byte) ([]byterange.ByteRange, error) {
-	fmt.Printf("Getting byte ranges to upload for sessionId: %s and fileHash: %v\n", sessionId, fileHash)
+	type Payload struct {
+		SessionId string `json:"sessionId"`
+		FileHash  []byte `json:"fileHash"`
+	}
 
-	responseData := [][]int{{6, 100}, {102, 132}, {103, 104}, {133, 152}, {154, 154}, {155, 155}, {156, 159}, {161, 306}}
+	payload := Payload{SessionId: sessionId, FileHash: fileHash}
+
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		panic(err)
+	}
+
+	resp, err := http.Post(fmt.Sprintf("%s%s", ur.baseUrl, ur.endpoints.ByteRangesToUpload), "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+
+	type Response struct {
+		ByteRanges [][2]int `json:"byteRanges"`
+	}
+
+	var response Response
+	json.NewDecoder(resp.Body).Decode(&response)
 
 	var byteRangesToUpload []byterange.ByteRange
-
-	for _, data := range responseData {
+	for _, data := range response.ByteRanges {
 		byteRange, err := byterange.NewByteRange(data[0], data[1])
 		if err != nil {
 			return nil, err
 		}
 		byteRangesToUpload = append(byteRangesToUpload, byteRange)
 	}
-
+	fmt.Println(byteRangesToUpload)
 	return byteRangesToUpload, nil
 }
 
 func (ur UploadRequester) makeUploadFileChunkRequest(sessionId string, fileHash []byte, chunk []byte, startByte int, endByte int) error {
-	// fmt.Printf("Uploading to %s, sessionId: %s, fileHash: %v, startByte: %d, endByte: %d\n", ur.endpoints.UploadFileChunk, sessionId, fileHash, startByte, endByte)
-	// time.Sleep(100 * time.Millisecond)
-	return nil
+	type Payload struct {
+		SessionId string `json:"sessionId"`
+		FileHash  []byte `json:"fileHash"`
+		Chunk     []byte `json:"chunk"`
+		StartByte int    `json:"startByte"`
+		EndByte   int    `json:"endByte"`
+	}
+
+	payload := Payload{
+		SessionId: sessionId,
+		FileHash:  fileHash,
+		Chunk:     chunk,
+		StartByte: startByte,
+		EndByte:   endByte,
+	}
+
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		panic(err)
+	}
+
+	resp, err := http.Post(fmt.Sprintf("%s%s", ur.baseUrl, ur.endpoints.UploadFileChunk), "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		return nil
+	}
+
+	return fmt.Errorf("upload failed with status: %d", resp.StatusCode)
 }

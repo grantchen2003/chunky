@@ -12,7 +12,8 @@ func HashFile(filePath string) ([]byte, error) {
 	}
 	defer bfr.Close()
 
-	for chunk, err := range bfr.ReadChunk(1024) {
+	const bufferSizeBytes = 1 << 20 // 1 MiB
+	for chunk, err := range bfr.ReadChunk(bufferSizeBytes) {
 		if err != nil {
 			return nil, err
 		}

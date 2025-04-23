@@ -93,7 +93,8 @@ func (u *Uploader) streamFileUpload(sessionId string, fileHash []byte) error {
 		return err
 	}
 
-	for fileChunk, err := range bfr.ReadChunk(1024 * 1024) {
+	const bufferSizeBytes = 1 << 20 // 1 MiB
+	for fileChunk, err := range bfr.ReadChunk(bufferSizeBytes) {
 		if err != nil {
 			return err
 		}
@@ -119,7 +120,8 @@ func (u *Uploader) streamFileResumeUpload(sessionId string, fileHash []byte, byt
 		totalBytesToUpload += br.Size()
 	}
 
-	for fileChunk, err := range bfr.ReadChunkWithRange(1024*1024, byteRanges) {
+	const bufferSizeBytes = 1 << 20 // 1 MiB
+	for fileChunk, err := range bfr.ReadChunkWithRange(bufferSizeBytes, byteRanges) {
 		if err != nil {
 			return err
 		}

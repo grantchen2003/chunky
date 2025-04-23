@@ -56,7 +56,16 @@ func handleUserCommands(client *chunky.Client) {
 }
 
 func main() {
-	client, err := chunky.NewClient("http://localhost:8080", "bigfile.txt")
+	client, err := chunky.NewClient(
+		"http://localhost:8080",
+		"bigfile.txt",
+		&chunky.UploadEndpoints{
+			InitiateUploadSession: "/my-custom-initiate-upload-session-endpoint",
+			ByteRangesToUpload:    "/my-custom-byte-ranges-to-upload-endpoint",
+			UploadFileChunk:       "/my-custom-upload-file-chunk-endpoint",
+		},
+	)
+
 	if err != nil {
 		panic(err)
 	}
@@ -76,7 +85,6 @@ func main() {
 
 		case uploadProgress := <-client.UploadProgressChan():
 			totalUploadedBytes += uploadProgress.UploadedBytes
-			fmt.Println(totalUploadedBytes, uploadProgress.TotalBytesToUpload)
 			fmt.Println("Upload progress:", 100*totalUploadedBytes/uploadProgress.TotalBytesToUpload)
 		}
 	}

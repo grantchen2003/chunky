@@ -17,9 +17,10 @@ type UploadCoordinator struct {
 	isUploading     bool
 	uploadStorer    *us.UploadStorer
 	uploadValidator *UploadValidator
+	uploadRequester *UploadRequester
 }
 
-func NewUploadCoordinator(url string, filePath string, uploadStorer us.UploadStorer, uploadValidator *UploadValidator) *UploadCoordinator {
+func NewUploadCoordinator(url string, filePath string, uploadStorer us.UploadStorer, uploadValidator *UploadValidator, uploadRequester *UploadRequester) *UploadCoordinator {
 	ctx, ctxCancel := context.WithCancel(context.Background())
 
 	return &UploadCoordinator{
@@ -31,6 +32,7 @@ func NewUploadCoordinator(url string, filePath string, uploadStorer us.UploadSto
 		isUploading:     false,
 		uploadStorer:    &uploadStorer,
 		uploadValidator: uploadValidator,
+		uploadRequester: uploadRequester,
 	}
 }
 
@@ -48,7 +50,7 @@ func (u *UploadCoordinator) Upload(uploadProgressChan chan<- UploadProgress) Upl
 	}
 
 	uploadTask := func() error {
-		uploader := NewUploader(u.url, u.filePath, uploadProgressChan, *u.uploadStorer)
+		uploader := NewUploader(u.url, u.filePath, uploadProgressChan, *u.uploadStorer, u.uploadRequester)
 
 		err := uploader.Upload()
 
@@ -98,7 +100,7 @@ func (u *UploadCoordinator) ResumeUpload(uploadProgressChan chan<- UploadProgres
 	}
 
 	resumeUploadTask := func() error {
-		uploader := NewUploader(u.url, u.filePath, uploadProgressChan, *u.uploadStorer)
+		uploader := NewUploader(u.url, u.filePath, uploadProgressChan, *u.uploadStorer, u.uploadRequester)
 
 		err := uploader.ResumeUpload()
 

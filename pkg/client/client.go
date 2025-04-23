@@ -10,17 +10,18 @@ type Client struct {
 	uploadCoordinator *internal.UploadCoordinator
 }
 
-func NewClient(url string, filePath string) (*Client, error) {
+func NewClient(url string, filePath string, uploadEndpoints *internal.UploadEndpoints) (*Client, error) {
 	uploadStorer, err := us.NewSqliteUploadStore()
 	if err != nil {
 		return nil, err
 	}
 
+	uploadRequester := internal.NewUploadRequester(url, uploadEndpoints)
 	uploadValidator := internal.NewUploadValidator(url, filePath, uploadStorer)
 
 	return &Client{
 		uploadNotifier:    internal.NewUploadNotifier(),
-		uploadCoordinator: internal.NewUploadCoordinator(url, filePath, uploadStorer, uploadValidator),
+		uploadCoordinator: internal.NewUploadCoordinator(url, filePath, uploadStorer, uploadValidator, uploadRequester),
 	}, nil
 }
 

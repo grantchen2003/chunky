@@ -13,16 +13,16 @@ type Uploader struct {
 	filePath           string
 	uploadProgressChan chan<- UploadProgress
 	uploadStorer       us.UploadStorer
-	uploadRequester    UploadRequester
+	uploadRequester    *UploadRequester
 }
 
-func NewUploader(url string, filePath string, uploadProgressChan chan<- UploadProgress, uploadStorer us.UploadStorer) *Uploader {
+func NewUploader(url string, filePath string, uploadProgressChan chan<- UploadProgress, uploadStorer us.UploadStorer, uploadRequester *UploadRequester) *Uploader {
 	return &Uploader{
 		url:                url,
 		filePath:           filePath,
 		uploadProgressChan: uploadProgressChan,
 		uploadStorer:       uploadStorer,
-		uploadRequester:    *newUploadRequester(url),
+		uploadRequester:    uploadRequester,
 	}
 }
 

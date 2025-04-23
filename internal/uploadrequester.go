@@ -6,14 +6,30 @@ import (
 	"github.com/grantchen2003/chunky/internal/byterange"
 )
 
-// need to implement
-type UploadRequester struct {
-	url string
+type UploadEndpoints struct {
+	InitiateUploadSession string
+	ByteRangesToUpload    string
+	UploadFileChunk       string
 }
 
-func newUploadRequester(url string) *UploadRequester {
+// need to implement
+type UploadRequester struct {
+	baseUrl   string
+	endpoints *UploadEndpoints
+}
+
+func NewUploadRequester(baseUrl string, endpoints *UploadEndpoints) *UploadRequester {
+	if endpoints == nil {
+		endpoints = &UploadEndpoints{
+			InitiateUploadSession: "/initiateUploadSession",
+			ByteRangesToUpload:    "/byteRangesToUpload",
+			UploadFileChunk:       "/uploadFileChunk",
+		}
+	}
+
 	return &UploadRequester{
-		url: url,
+		baseUrl:   baseUrl,
+		endpoints: endpoints,
 	}
 }
 
@@ -42,7 +58,7 @@ func (ur UploadRequester) makeByteRangesToUploadRequest(sessionId string, fileHa
 }
 
 func (ur UploadRequester) makeUploadFileChunkRequest(sessionId string, fileHash []byte, chunk []byte, startByte int, endByte int) error {
-	fmt.Printf("Uploading to %s, sessionId: %s, fileHash: %v, startByte: %d, endByte: %d\n", ur.url, sessionId, fileHash, startByte, endByte)
+	// fmt.Printf("Uploading to %s, sessionId: %s, fileHash: %v, startByte: %d, endByte: %d\n", ur.endpoints.UploadFileChunk, sessionId, fileHash, startByte, endByte)
 	// time.Sleep(100 * time.Millisecond)
 	return nil
 }

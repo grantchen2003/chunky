@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strings"
+
+	"github.com/grantchen2003/chunky/internal"
 )
 
 func HandleInitiateUploadSession(w http.ResponseWriter, r *http.Request) {
-	log.Printf("Serving %s\n", strings.Split(r.RemoteAddr, ":")[0])
+	// log.Printf("Serving %s\n", strings.Split(r.RemoteAddr, ":")[0])
 
 	if r.Method != http.MethodPost {
 		http.Error(w, "Only POST method is allowed", http.StatusMethodNotAllowed)
@@ -29,7 +30,12 @@ func HandleInitiateUploadSession(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	sessionId := "t8y3euagvkqp8fuo1"
+	sessionId, err := internal.GenerateSessionId(16)
+	if err != nil {
+		http.Error(w, "Failed to generate session id", http.StatusInternalServerError)
+		log.Printf("Error generating session id response: %v", err)
+		return
+	}
 
 	// need to store sessionId, fileHash, and totalFileSizeBytes somewhere
 
@@ -43,7 +49,7 @@ func HandleInitiateUploadSession(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleByteRangesToUpload(w http.ResponseWriter, r *http.Request) {
-	log.Printf("Serving %s\n", strings.Split(r.RemoteAddr, ":")[0])
+	// log.Printf("Serving %s\n", strings.Split(r.RemoteAddr, ":")[0])
 
 	responseData := map[string][][2]int{
 		"ByteRanges": {{6, 100}, {102, 132}, {103, 104}, {133, 152}, {154, 154}, {155, 155}, {156, 159}, {161, 306}},
@@ -59,7 +65,7 @@ func HandleByteRangesToUpload(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleUploadFileChunk(w http.ResponseWriter, r *http.Request) {
-	log.Printf("Serving %s\n", strings.Split(r.RemoteAddr, ":")[0])
+	// log.Printf("Serving %s\n", strings.Split(r.RemoteAddr, ":")[0])
 
 	w.WriteHeader(http.StatusOK)
 }

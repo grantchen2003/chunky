@@ -6,7 +6,7 @@ import (
 	"errors"
 )
 
-func GenerateSessionId(length int) (string, error) {
+func GenerateRandomHexString(length int) (string, error) {
 	if length <= 0 {
 		return "", errors.New("length must be greater than 0")
 	}

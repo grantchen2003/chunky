@@ -20,7 +20,7 @@ func NewUploadSessionService(db database.Database, fileStorer filestorer.FileSto
 }
 
 func (s *UploadSessionService) CreateUploadSession(fileHash []byte, totalFileSizeBytes int) (string, error) {
-	sessionId, err := GenerateSessionId(16)
+	sessionId, err := GenerateRandomHexString(16)
 	if err != nil {
 		return "", err
 	}

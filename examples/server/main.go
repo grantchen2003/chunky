@@ -8,7 +8,10 @@ import (
 )
 
 func main() {
-	server := chunky.NewServer(":8080")
+	server, err := chunky.NewServer(":8080")
+	if err != nil {
+		panic(err)
+	}
 
 	server.SetInitiateUploadSessionEndpoint("/my-custom-initiate-upload-session-endpoint")
 	server.SetByteRangesToUploadEndpoint("/my-custom-byte-ranges-to-upload-endpoint")

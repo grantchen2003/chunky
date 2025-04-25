@@ -1,26 +1,57 @@
 package internal
 
-import "github.com/grantchen2003/chunky/internal/database"
+import (
+	"fmt"
+
+	"github.com/grantchen2003/chunky/internal/database"
+	"github.com/grantchen2003/chunky/internal/filestorer"
+)
 
 type UploadSessionService struct {
-	db database.Database
+	db         database.Database
+	fileStorer filestorer.FileStorer
 }
 
-func NewUploadSessionService(db database.Database) *UploadSessionService {
+func NewUploadSessionService(db database.Database, fileStorer filestorer.FileStorer) *UploadSessionService {
 	return &UploadSessionService{
-		db: db,
+		db:         db,
+		fileStorer: fileStorer,
 	}
 }
 
-func (uss *UploadSessionService) CreateUploadSession(fileHash []byte, totalFileSizeBytes int) (string, error) {
+func (s *UploadSessionService) CreateUploadSession(fileHash []byte, totalFileSizeBytes int) (string, error) {
 	sessionId, err := GenerateSessionId(16)
 	if err != nil {
 		return "", err
 	}
 
-	if err = uss.db.CreateUploadSession(sessionId, fileHash, totalFileSizeBytes); err != nil {
+	if err = s.db.CreateUploadSession(sessionId, fileHash, totalFileSizeBytes); err != nil {
 		return "", err
 	}
 
 	return sessionId, err
+}
+
+// name this better
+func (s *UploadSessionService) AddFileChunk(sessionId string, fileHash []byte, chunk []byte, startByte int, endByte int) error {
+	exists, err := s.db.Exists(sessionId, fileHash)
+	if err != nil {
+		return err
+	}
+
+	if !exists {
+		return fmt.Errorf("cannot add file chunk to non-existent session id: %s and fileHash: %s", sessionId, fileHash)
+	}
+
+	chunkId, err := s.fileStorer.Store(chunk)
+	if err != nil {
+		return err
+	}
+
+	err = s.db.AddFileChunk(sessionId, fileHash, chunkId, startByte, endByte)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

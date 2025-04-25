@@ -23,9 +23,9 @@ func NewServer(port string) (*Server, error) {
 		return nil, err
 	}
 
-	fileStorer := filestorer.NewFileStore()
+	localFileStore := filestorer.NewLocalFileStore()
 
-	uploadSessionService := internal.NewUploadSessionService(db, fileStorer)
+	uploadSessionService := internal.NewUploadSessionService(db, localFileStore)
 
 	return &Server{
 		port: port,
@@ -35,7 +35,7 @@ func NewServer(port string) (*Server, error) {
 			"uploadFileChunk":       "/uploadFileChunk",
 		},
 		db:                   db,
-		fileStorer:           fileStorer,
+		fileStorer:           localFileStore,
 		uploadSessionService: uploadSessionService,
 	}, nil
 }

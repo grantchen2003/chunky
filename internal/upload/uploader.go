@@ -103,7 +103,9 @@ func (u *Uploader) streamFileUpload(sessionId string, fileHash []byte) error {
 		// Do not make this concurrent: uploading chunks in parallel would bypass
 		// the buffered reader's memory management, potentially loading the entire
 		// file into memory. Sequential uploads preserve the intended low memory footprint.
-		u.uploadFileChunkWithProgress(sessionId, fileHash, fileChunk, fileSizeBytes)
+		if err := u.uploadFileChunkWithProgress(sessionId, fileHash, fileChunk, fileSizeBytes); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -130,7 +132,9 @@ func (u *Uploader) streamFileResumeUpload(sessionId string, fileHash []byte, byt
 		// Do not make this concurrent: uploading chunks in parallel would bypass
 		// the buffered reader's memory management, potentially loading the entire
 		// file into memory. Sequential uploads preserve the intended low memory footprint.
-		u.uploadFileChunkWithProgress(sessionId, fileHash, fileChunk, totalBytesToUpload)
+		if err := u.uploadFileChunkWithProgress(sessionId, fileHash, fileChunk, totalBytesToUpload); err != nil {
+			return err
+		}
 	}
 
 	return nil

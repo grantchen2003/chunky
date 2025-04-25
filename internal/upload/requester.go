@@ -41,12 +41,12 @@ func (r Requester) makeInitiateUploadSessionRequest(fileHash []byte, totalFileSi
 
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
-		panic(err)
+		return "", err
 	}
 
 	resp, err := http.Post(fmt.Sprintf("%s%s", r.baseUrl, r.endpoints.InitiateUploadSession), "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
-		panic(err)
+		return "", err
 	}
 	defer resp.Body.Close()
 
@@ -71,12 +71,12 @@ func (r Requester) makeByteRangesToUploadRequest(sessionId string, fileHash []by
 
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	resp, err := http.Post(fmt.Sprintf("%s%s", r.baseUrl, r.endpoints.ByteRangesToUpload), "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	defer resp.Body.Close()
 
@@ -95,7 +95,7 @@ func (r Requester) makeByteRangesToUploadRequest(sessionId string, fileHash []by
 		}
 		byteRangesToUpload = append(byteRangesToUpload, byteRange)
 	}
-	fmt.Println(byteRangesToUpload)
+
 	return byteRangesToUpload, nil
 }
 
@@ -118,12 +118,12 @@ func (r Requester) makeUploadFileChunkRequest(sessionId string, fileHash []byte,
 
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	resp, err := http.Post(fmt.Sprintf("%s%s", r.baseUrl, r.endpoints.UploadFileChunk), "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer resp.Body.Close()
 

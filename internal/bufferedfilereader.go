@@ -50,7 +50,7 @@ func (bfr *BufferedFileReader) ReadChunk(bufferSizeBytes int) iter.Seq2[FileChun
 				return
 			}
 
-			if !yield(FileChunk{byteRange: byteRange, data: buffer[:bytesRead]}, nil) {
+			if !yield(FileChunk{ByteRange: byteRange, Data: buffer[:bytesRead]}, nil) {
 				return
 			}
 
@@ -86,8 +86,8 @@ func (bfr *BufferedFileReader) ReadChunkWithRange(bufferSizeBytes int, byteRange
 
 			for _, byteRange := range byteRangeGroup {
 				fc := FileChunk{
-					byteRange: byteRange,
-					data:      buffer[byteRange.StartByte-offset : byteRange.EndByte-offset],
+					ByteRange: byteRange,
+					Data:      buffer[byteRange.StartByte-offset : byteRange.EndByte-offset],
 				}
 
 				if !yield(fc, nil) {

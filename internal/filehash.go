@@ -18,7 +18,7 @@ func HashFile(filePath string) ([]byte, error) {
 			return nil, err
 		}
 
-		hasher.Write(chunk.data)
+		hasher.Write(chunk.Data)
 	}
 
 	hash := hasher.Sum(nil)

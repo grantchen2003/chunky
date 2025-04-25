@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -13,6 +14,8 @@ type InitiateUploadSessionHandler struct {
 }
 
 func NewInitiateUploadSessionHandler(uploadSessionService *internal.UploadSessionService) *InitiateUploadSessionHandler {
+	fmt.Println("bro", uploadSessionService)
+
 	return &InitiateUploadSessionHandler{
 		uploadSessionService: uploadSessionService,
 	}
@@ -36,6 +39,8 @@ func (h *InitiateUploadSessionHandler) Handle(w http.ResponseWriter, r *http.Req
 		return
 	}
 	defer r.Body.Close()
+
+	fmt.Println("yooo", h.uploadSessionService)
 
 	sessionId, err := h.uploadSessionService.CreateUploadSession(payload.FileHash, payload.TotalFileSizeBytes)
 	if err != nil {

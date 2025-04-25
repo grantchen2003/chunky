@@ -1,4 +1,4 @@
-package uploadstorer
+package storer
 
 import (
 	"encoding/json"

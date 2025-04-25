@@ -1,80 +1,80 @@
 package client
 
 import (
-	"github.com/grantchen2003/chunky/internal"
-	us "github.com/grantchen2003/chunky/internal/uploadstorer"
+	"github.com/grantchen2003/chunky/internal/upload"
+	us "github.com/grantchen2003/chunky/internal/upload/uploadstorer"
 )
 
 type Client struct {
-	uploadNotifier    *internal.UploadNotifier
-	uploadCoordinator *internal.UploadCoordinator
+	notifier    *upload.Notifier
+	coordinator *upload.Coordinator
 }
 
-func NewClient(url string, filePath string, uploadEndpoints *internal.UploadEndpoints) (*Client, error) {
-	uploadStorer, err := us.NewSqliteUploadStore()
+func NewClient(url string, filePath string, uploadEndpoints *upload.Endpoints) (*Client, error) {
+	storer, err := us.NewSqliteUploadStore()
 	if err != nil {
 		return nil, err
 	}
 
-	uploadRequester := internal.NewUploadRequester(url, uploadEndpoints)
-	uploadValidator := internal.NewUploadValidator(url, filePath, uploadStorer)
+	requester := upload.NewRequester(url, uploadEndpoints)
+	validator := upload.NewValidator(url, filePath, storer)
 
 	return &Client{
-		uploadNotifier:    internal.NewUploadNotifier(),
-		uploadCoordinator: internal.NewUploadCoordinator(url, filePath, uploadStorer, uploadValidator, uploadRequester),
+		notifier:    upload.NewNotifier(),
+		coordinator: upload.NewCoordinator(url, filePath, storer, validator, requester),
 	}, nil
 }
 
 func (c *Client) Upload() error {
-	if err := c.uploadCoordinator.ValidateUpload(); err != nil {
+	if err := c.coordinator.ValidateUpload(); err != nil {
 		return err
 	}
 
-	c.uploadNotifier.StatusChan <- internal.UploadStarted
+	c.notifier.StatusChan <- upload.UploadStarted
 
-	uploadResult := c.uploadCoordinator.Upload(c.uploadNotifier.ProgressChan)
+	uploadResult := c.coordinator.Upload(c.notifier.ProgressChan)
 
-	c.uploadNotifier.ResultChan <- uploadResult
+	c.notifier.ResultChan <- uploadResult
 
-	c.uploadNotifier.Close()
+	c.notifier.Close()
 
 	return nil
 }
 
 func (c *Client) Pause() error {
-	if err := c.uploadCoordinator.ValidatePauseUpload(); err != nil {
+	if err := c.coordinator.ValidatePauseUpload(); err != nil {
 		return err
 	}
 
-	err := c.uploadCoordinator.PauseUpload()
+	err := c.coordinator.PauseUpload()
 
 	return err
 }
 
 func (c *Client) Resume() error {
-	if err := c.uploadCoordinator.ValidateResumeUpload(); err != nil {
+	if err := c.coordinator.ValidateResumeUpload(); err != nil {
 		return err
 	}
 
-	c.uploadNotifier.StatusChan <- internal.UploadResumed
+	c.notifier.StatusChan <- upload.UploadResumed
 
-	uploadResult := c.uploadCoordinator.ResumeUpload(c.uploadNotifier.ProgressChan)
+	uploadResult := c.coordinator.ResumeUpload(c.notifier.ProgressChan)
 
-	c.uploadNotifier.ResultChan <- uploadResult
+	c.notifier.ResultChan <- uploadResult
 
-	c.uploadNotifier.Close()
+	c.notifier.Close()
 
 	return nil
 }
 
-func (c *Client) UploadProgressChan() <-chan internal.UploadProgress {
-	return c.uploadNotifier.ProgressChan
+func (c *Client) UploadProgressChan() <-chan upload.Progress {
+	return c.notifier.ProgressChan
 }
 
-func (c *Client) UploadStatusChan() <-chan internal.UploadStatus {
-	return c.uploadNotifier.StatusChan
+func (c *Client) UploadStatusChan() <-chan upload.Status {
+	return c.notifier.StatusChan
 }
 
-func (c *Client) UploadResultChan() <-chan internal.UploadResult {
-	return c.uploadNotifier.ResultChan
+func (c *Client) UploadResultChan() <-chan upload.Result {
+	return c.notifier.ResultChan
 }

@@ -1,6 +1,6 @@
-package internal
+package upload
 
-type UploadProgress struct {
+type Progress struct {
 	UploadedBytes      int
 	TotalBytesToUpload int
 }

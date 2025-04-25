@@ -1,4 +1,4 @@
-package internal
+package upload
 
 import (
 	"bytes"
@@ -9,15 +9,14 @@ import (
 	"github.com/grantchen2003/chunky/internal/byterange"
 )
 
-// need to implement
-type UploadRequester struct {
+type Requester struct {
 	baseUrl   string
-	endpoints *UploadEndpoints
+	endpoints *Endpoints
 }
 
-func NewUploadRequester(baseUrl string, endpoints *UploadEndpoints) *UploadRequester {
+func NewRequester(baseUrl string, endpoints *Endpoints) *Requester {
 	if endpoints == nil {
-		endpoints = &UploadEndpoints{
+		endpoints = &Endpoints{
 			InitiateUploadSession: "/initiateUploadSession",
 			ByteRangesToUpload:    "/byteRangesToUpload",
 			UploadFileChunk:       "/uploadFileChunk",
@@ -26,13 +25,13 @@ func NewUploadRequester(baseUrl string, endpoints *UploadEndpoints) *UploadReque
 
 	endpoints.PopulateEmptyFields()
 
-	return &UploadRequester{
+	return &Requester{
 		baseUrl:   baseUrl,
 		endpoints: endpoints,
 	}
 }
 
-func (ur UploadRequester) makeInitiateUploadSessionRequest(fileHash []byte, totalFileSizeBytes int) (string, error) {
+func (r Requester) makeInitiateUploadSessionRequest(fileHash []byte, totalFileSizeBytes int) (string, error) {
 	type Payload struct {
 		FileHash           []byte `json:"fileHahs"`
 		TotalFileSizeBytes int    `json:"TotalFileSizeBytes"`
@@ -45,7 +44,7 @@ func (ur UploadRequester) makeInitiateUploadSessionRequest(fileHash []byte, tota
 		panic(err)
 	}
 
-	resp, err := http.Post(fmt.Sprintf("%s%s", ur.baseUrl, ur.endpoints.InitiateUploadSession), "application/json", bytes.NewBuffer(jsonData))
+	resp, err := http.Post(fmt.Sprintf("%s%s", r.baseUrl, r.endpoints.InitiateUploadSession), "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		panic(err)
 	}
@@ -62,7 +61,7 @@ func (ur UploadRequester) makeInitiateUploadSessionRequest(fileHash []byte, tota
 	return response.SessionId, nil
 }
 
-func (ur UploadRequester) makeByteRangesToUploadRequest(sessionId string, fileHash []byte) ([]byterange.ByteRange, error) {
+func (r Requester) makeByteRangesToUploadRequest(sessionId string, fileHash []byte) ([]byterange.ByteRange, error) {
 	type Payload struct {
 		SessionId string `json:"sessionId"`
 		FileHash  []byte `json:"fileHash"`
@@ -75,7 +74,7 @@ func (ur UploadRequester) makeByteRangesToUploadRequest(sessionId string, fileHa
 		panic(err)
 	}
 
-	resp, err := http.Post(fmt.Sprintf("%s%s", ur.baseUrl, ur.endpoints.ByteRangesToUpload), "application/json", bytes.NewBuffer(jsonData))
+	resp, err := http.Post(fmt.Sprintf("%s%s", r.baseUrl, r.endpoints.ByteRangesToUpload), "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		panic(err)
 	}
@@ -100,7 +99,7 @@ func (ur UploadRequester) makeByteRangesToUploadRequest(sessionId string, fileHa
 	return byteRangesToUpload, nil
 }
 
-func (ur UploadRequester) makeUploadFileChunkRequest(sessionId string, fileHash []byte, chunk []byte, startByte int, endByte int) error {
+func (r Requester) makeUploadFileChunkRequest(sessionId string, fileHash []byte, chunk []byte, startByte int, endByte int) error {
 	type Payload struct {
 		SessionId string `json:"sessionId"`
 		FileHash  []byte `json:"fileHash"`
@@ -122,7 +121,7 @@ func (ur UploadRequester) makeUploadFileChunkRequest(sessionId string, fileHash 
 		panic(err)
 	}
 
-	resp, err := http.Post(fmt.Sprintf("%s%s", ur.baseUrl, ur.endpoints.UploadFileChunk), "application/json", bytes.NewBuffer(jsonData))
+	resp, err := http.Post(fmt.Sprintf("%s%s", r.baseUrl, r.endpoints.UploadFileChunk), "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		panic(err)
 	}

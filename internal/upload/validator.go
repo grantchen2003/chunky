@@ -1,28 +1,29 @@
-package internal
+package upload
 
 import (
 	"bytes"
 
-	us "github.com/grantchen2003/chunky/internal/uploadstorer"
+	"github.com/grantchen2003/chunky/internal"
+	us "github.com/grantchen2003/chunky/internal/upload/uploadstorer"
 )
 
-type UploadValidator struct {
+type Validator struct {
 	url          string
 	filePath     string
 	uploadStorer us.UploadStorer
 }
 
-func NewUploadValidator(url string, filePath string, uploadStorer us.UploadStorer) *UploadValidator {
-	return &UploadValidator{
+func NewValidator(url string, filePath string, uploadStorer us.UploadStorer) *Validator {
+	return &Validator{
 		url:          url,
 		filePath:     filePath,
 		uploadStorer: uploadStorer,
 	}
 }
 
-func (uv UploadValidator) hasExistingUpload() bool {
+func (v Validator) hasExistingUpload() bool {
 	uploadExists, err := func() (bool, error) {
-		_, _, err := uv.uploadStorer.GetSessionIdAndFileHash(uv.url, uv.filePath)
+		_, _, err := v.uploadStorer.GetSessionIdAndFileHash(v.url, v.filePath)
 		if err != nil {
 			if err == us.ErrNotFound {
 				return false, nil
@@ -40,14 +41,14 @@ func (uv UploadValidator) hasExistingUpload() bool {
 	return uploadExists
 }
 
-func (uv UploadValidator) fileHasChangedSinceLastUpload() bool {
+func (v Validator) fileHasChangedSinceLastUpload() bool {
 	hasChanged, err := func() (bool, error) {
-		_, savedFileHash, err := uv.uploadStorer.GetSessionIdAndFileHash(uv.url, uv.filePath)
+		_, savedFileHash, err := v.uploadStorer.GetSessionIdAndFileHash(v.url, v.filePath)
 		if err != nil {
 			return false, err
 		}
 
-		currFileHash, err := HashFile(uv.filePath)
+		currFileHash, err := internal.HashFile(v.filePath)
 		if err != nil {
 			return false, err
 		}

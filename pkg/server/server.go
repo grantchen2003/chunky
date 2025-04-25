@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/grantchen2003/chunky/internal"
@@ -27,8 +26,6 @@ func NewServer(port string) (*Server, error) {
 	fileStorer := filestorer.NewFileStore()
 
 	uploadSessionService := internal.NewUploadSessionService(db, fileStorer)
-
-	fmt.Println(db, fileStorer, uploadSessionService)
 
 	return &Server{
 		port: port,
@@ -56,8 +53,6 @@ func (s *Server) SetUploadFileChunkEndpoint(endpoint string) {
 }
 
 func (s *Server) Start() error {
-	fmt.Println(s)
-
 	initiateUploadSessionHandler := handler.NewInitiateUploadSessionHandler(s.uploadSessionService)
 	byteRangesToUploadHandler := handler.NewByteRangesToUploadHandler()
 	uploadFileChunkHandler := handler.NewUploadFileChunkHandler(s.uploadSessionService)

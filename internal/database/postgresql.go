@@ -12,6 +12,7 @@ func (p *Postgresql) CreateUploadSession(sessionId string, fileHash []byte, tota
 }
 
 func (p *Postgresql) Exists(sessionId string, fileHash []byte) (exists bool, err error) {
+	exists = true
 	return exists, err
 }
 

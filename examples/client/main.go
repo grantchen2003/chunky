@@ -58,7 +58,7 @@ func handleUserCommands(client *chunky.Client) {
 func main() {
 	client, err := chunky.NewClient(
 		"http://localhost:8080",
-		"bigfile.txt",
+		"file.txt",
 		&chunky.UploadEndpoints{
 			InitiateUploadSession: "/my-custom-initiate-upload-session-endpoint",
 			ByteRangesToUpload:    "/my-custom-byte-ranges-to-upload-endpoint",

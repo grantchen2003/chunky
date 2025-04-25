@@ -23,7 +23,10 @@ func NewServer(port string) (*Server, error) {
 		return nil, err
 	}
 
-	localFileStore := filestorer.NewLocalFileStore()
+	localFileStore, err := filestorer.NewLocalFileStore("./chunky-local-file-store")
+	if err != nil {
+		return nil, err
+	}
 
 	uploadSessionService := internal.NewUploadSessionService(db, localFileStore)
 

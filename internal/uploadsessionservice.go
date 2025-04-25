@@ -5,6 +5,7 @@ import (
 
 	"github.com/grantchen2003/chunky/internal/database"
 	"github.com/grantchen2003/chunky/internal/filestorer"
+	"github.com/grantchen2003/chunky/internal/util"
 )
 
 type UploadSessionService struct {
@@ -20,7 +21,7 @@ func NewUploadSessionService(db database.Database, fileStorer filestorer.FileSto
 }
 
 func (s *UploadSessionService) CreateUploadSession(fileHash []byte, totalFileSizeBytes int) (string, error) {
-	sessionId, err := GenerateRandomHexString(16)
+	sessionId, err := util.GenerateRandomHexString(16)
 	if err != nil {
 		return "", err
 	}

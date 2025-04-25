@@ -8,6 +8,9 @@ import (
 	"github.com/grantchen2003/chunky/internal"
 )
 
+// add constraints to make sure payload's chunk size isn't too big (aka can fit all in memory)
+// also have to consider when there are many concurrent requests, each goroutine handler's payload
+// is valid, but the total memory used by all goroutine's might be too much
 type UploadFileChunkHandler struct {
 	uploadSessionService *internal.UploadSessionService
 }

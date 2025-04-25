@@ -9,8 +9,8 @@ import (
 type ByteRangesToUploadHandler struct {
 }
 
-func NewByteRangesToUploadHandler() *InitiateUploadSessionHandler {
-	return &InitiateUploadSessionHandler{}
+func NewByteRangesToUploadHandler() *ByteRangesToUploadHandler {
+	return &ByteRangesToUploadHandler{}
 }
 
 func (h *ByteRangesToUploadHandler) Handle(w http.ResponseWriter, r *http.Request) {

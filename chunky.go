@@ -11,9 +11,5 @@ type UploadEndpoints = internal.UploadEndpoints
 
 var (
 	NewClient = client.NewClient
-
-	StartServer                 = server.StartServer
-	HandleInitiateUploadSession = server.HandleInitiateUploadSession
-	HandleByteRangesToUpload    = server.HandleByteRangesToUpload
-	HandleUploadFileChunk       = server.HandleUploadFileChunk
+	NewServer = server.NewServer
 )

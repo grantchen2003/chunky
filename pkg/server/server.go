@@ -1,80 +1,54 @@
 package server
 
 import (
-	"encoding/json"
-	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/grantchen2003/chunky/internal"
+	"github.com/grantchen2003/chunky/internal/database"
+	"github.com/grantchen2003/chunky/internal/handler"
 )
 
-func HandleInitiateUploadSession(w http.ResponseWriter, r *http.Request) {
-	// log.Printf("Serving %s\n", strings.Split(r.RemoteAddr, ":")[0])
+type Server struct {
+	port                 string
+	handlerToEndpoint    map[string]string
+	db                   database.Database
+	uploadSessionService *internal.UploadSessionService
+}
 
-	if r.Method != http.MethodPost {
-		http.Error(w, "Only POST method is allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	type Payload struct {
-		FileHash           []byte `json:"fileHash"`
-		TotalFileSizeBytes int    `json:"TotalFileSizeBytes"`
-	}
-
-	var payload Payload
-
-	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	defer r.Body.Close()
-
-	sessionId, err := internal.GenerateSessionId(16)
-	if err != nil {
-		http.Error(w, "Failed to generate session id", http.StatusInternalServerError)
-		log.Printf("Error generating session id response: %v", err)
-		return
-	}
-
-	// need to store sessionId, fileHash, and totalFileSizeBytes somewhere
-
-	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/json")
-
-	if err := json.NewEncoder(w).Encode(map[string]string{"sessionId": sessionId}); err != nil {
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-		log.Printf("Error encoding response: %v", err)
+func NewServer(port string) *Server {
+	db := database.NewPostgresql()
+	return &Server{
+		port: port,
+		handlerToEndpoint: map[string]string{
+			"initiateUploadSession": "/initiateUploadSession",
+			"byteRangesToUpload":    "/byteRangesToUpload",
+			"uploadFileChunk":       "/uploadFileChunk",
+		},
+		db:                   db,
+		uploadSessionService: internal.NewUploadSessionService(db),
 	}
 }
 
-func HandleByteRangesToUpload(w http.ResponseWriter, r *http.Request) {
-	// log.Printf("Serving %s\n", strings.Split(r.RemoteAddr, ":")[0])
-
-	responseData := map[string][][2]int{
-		"ByteRanges": {{6, 100}, {102, 132}, {103, 104}, {133, 152}, {154, 154}, {155, 155}, {156, 159}, {161, 306}},
-	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/json")
-
-	if err := json.NewEncoder(w).Encode(responseData); err != nil {
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-		log.Printf("Error encoding response: %v", err)
-	}
+func (s *Server) SetInitiateUploadSessionEndpoint(endpoint string) {
+	s.handlerToEndpoint["initiateUploadSession"] = endpoint
 }
 
-func HandleUploadFileChunk(w http.ResponseWriter, r *http.Request) {
-	// log.Printf("Serving %s\n", strings.Split(r.RemoteAddr, ":")[0])
-
-	w.WriteHeader(http.StatusOK)
+func (s *Server) SetByteRangesToUploadEndpoint(endpoint string) {
+	s.handlerToEndpoint["byteRangesToUpload"] = endpoint
 }
 
-func StartServer(port string, endpointToHandler map[string]func(w http.ResponseWriter, r *http.Request)) {
-	for endpoint, handler := range endpointToHandler {
-		http.HandleFunc(endpoint, handler)
-	}
+func (s *Server) SetUploadFileChunkEndpoint(endpoint string) {
+	s.handlerToEndpoint["uploadFileChunk"] = endpoint
+}
 
-	fmt.Println("Server listening on http://localhost:8080")
-	log.Fatal(http.ListenAndServe(port, nil))
+func (s *Server) Start() error {
+	initiateUploadSessionHandler := handler.NewInitiateUploadSessionHandler(s.uploadSessionService)
+	byteRangesToUploadHandler := handler.NewByteRangesToUploadHandler()
+	uploadFileChunkHandler := handler.NewUploadFileChunkHandler()
+
+	http.HandleFunc(s.handlerToEndpoint["initiateUploadSession"], initiateUploadSessionHandler.Handle)
+	http.HandleFunc(s.handlerToEndpoint["byteRangesToUpload"], byteRangesToUploadHandler.Handle)
+	http.HandleFunc(s.handlerToEndpoint["uploadFileChunk"], uploadFileChunkHandler.Handle)
+
+	return http.ListenAndServe(s.port, nil)
 }

@@ -1,18 +1,18 @@
 package main
 
 import (
-	"net/http"
+	"fmt"
+	"log"
 
 	"github.com/grantchen2003/chunky"
 )
 
 func main() {
-	chunky.StartServer(
-		":8080",
-		map[string]func(w http.ResponseWriter, r *http.Request){
-			"/my-custom-initiate-upload-session-endpoint": chunky.HandleInitiateUploadSession,
-			"/my-custom-byte-ranges-to-upload-endpoint":   chunky.HandleByteRangesToUpload,
-			"/my-custom-upload-file-chunk-endpoint":       chunky.HandleUploadFileChunk,
-		},
-	)
+	server := chunky.NewServer(":8080")
+
+	server.SetInitiateUploadSessionEndpoint("/my-custom-initiate-upload-session-endpoint")
+	server.SetByteRangesToUploadEndpoint("/my-custom-byte-ranges-to-upload-endpoint")
+
+	fmt.Println("Server started on port :8080")
+	log.Fatal(server.Start())
 }

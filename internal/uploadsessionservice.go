@@ -34,13 +34,13 @@ func (s *UploadSessionService) CreateUploadSession(fileHash []byte, totalFileSiz
 
 // name this better
 func (s *UploadSessionService) AddFileChunk(sessionId string, fileHash []byte, chunk []byte, startByte int, endByte int) error {
-	exists, err := s.db.Exists(sessionId, fileHash)
+	uploadExists, err := s.db.Exists(sessionId, fileHash)
 	if err != nil {
 		return err
 	}
 
-	if !exists {
-		return fmt.Errorf("cannot add file chunk to non-existent session id: %s and fileHash: %s", sessionId, fileHash)
+	if !uploadExists {
+		return fmt.Errorf("cannot add file chunk to non-existent upload with session id: %s and fileHash: %s", sessionId, fileHash)
 	}
 
 	chunkId, err := s.fileStorer.Store(chunk)

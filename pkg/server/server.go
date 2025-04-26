@@ -16,7 +16,7 @@ type Server struct {
 }
 
 func NewServer(port string) (*Server, error) {
-	db, err := database.NewPostgresql()
+	db, err := database.NewSqlite()
 	if err != nil {
 		return nil, err
 	}

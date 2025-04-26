@@ -56,3 +56,21 @@ func (s *UploadService) AddFileChunk(sessionId string, fileHash []byte, chunk []
 
 	return nil
 }
+
+func (s *UploadService) ByteRangesToUpload(sessionId string, fileHash []byte) ([][2]int, error) {
+	uploadExists, err := s.db.Exists(sessionId, fileHash)
+	if err != nil {
+		return nil, err
+	}
+
+	if !uploadExists {
+		return nil, fmt.Errorf("cannot add file chunk to non-existent upload with session id: %s and fileHash: %s", sessionId, fileHash)
+	}
+
+	byteRangesToUpload, err := s.db.ByteRangesToUpload(sessionId, fileHash)
+	if err != nil {
+		return nil, err
+	}
+
+	return byteRangesToUpload, nil
+}

@@ -53,7 +53,7 @@ func (s *Server) SetUploadFileChunkEndpoint(endpoint string) {
 
 func (s *Server) Start() error {
 	initiateUploadSessionHandler := handler.NewInitiateUploadSessionHandler(s.uploadService)
-	byteRangesToUploadHandler := handler.NewByteRangesToUploadHandler()
+	byteRangesToUploadHandler := handler.NewByteRangesToUploadHandler(s.uploadService)
 	uploadFileChunkHandler := handler.NewUploadFileChunkHandler(s.uploadService)
 
 	http.HandleFunc(s.handlerToEndpoint["initiateUploadSession"], initiateUploadSessionHandler.Handle)

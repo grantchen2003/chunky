@@ -12,12 +12,12 @@ import (
 // also have to consider when there are many concurrent requests, each goroutine handler's payload
 // is valid, but the total memory used by all goroutine's might be too much
 type UploadFileChunkHandler struct {
-	uploadSessionService *internal.UploadSessionService
+	uploadService *internal.UploadService
 }
 
-func NewUploadFileChunkHandler(uploadSessionService *internal.UploadSessionService) *UploadFileChunkHandler {
+func NewUploadFileChunkHandler(uploadService *internal.UploadService) *UploadFileChunkHandler {
 	return &UploadFileChunkHandler{
-		uploadSessionService: uploadSessionService,
+		uploadService: uploadService,
 	}
 }
 
@@ -43,7 +43,7 @@ func (h *UploadFileChunkHandler) Handle(w http.ResponseWriter, r *http.Request) 
 	}
 	defer r.Body.Close()
 
-	err := h.uploadSessionService.AddFileChunk(
+	err := h.uploadService.AddFileChunk(
 		payload.SessionId,
 		payload.FileHash,
 		payload.Chunk,

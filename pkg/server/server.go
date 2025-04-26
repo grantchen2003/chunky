@@ -10,11 +10,9 @@ import (
 )
 
 type Server struct {
-	port                 string
-	handlerToEndpoint    map[string]string
-	db                   database.Database
-	fileStorer           filestorer.FileStorer
-	uploadSessionService *internal.UploadSessionService
+	port              string
+	handlerToEndpoint map[string]string
+	uploadService     *internal.UploadService
 }
 
 func NewServer(port string) (*Server, error) {
@@ -28,7 +26,7 @@ func NewServer(port string) (*Server, error) {
 		return nil, err
 	}
 
-	uploadSessionService := internal.NewUploadSessionService(db, localFileStore)
+	uploadService := internal.NewUploadService(db, localFileStore)
 
 	return &Server{
 		port: port,
@@ -37,9 +35,7 @@ func NewServer(port string) (*Server, error) {
 			"byteRangesToUpload":    "/byteRangesToUpload",
 			"uploadFileChunk":       "/uploadFileChunk",
 		},
-		db:                   db,
-		fileStorer:           localFileStore,
-		uploadSessionService: uploadSessionService,
+		uploadService: uploadService,
 	}, nil
 }
 
@@ -56,9 +52,9 @@ func (s *Server) SetUploadFileChunkEndpoint(endpoint string) {
 }
 
 func (s *Server) Start() error {
-	initiateUploadSessionHandler := handler.NewInitiateUploadSessionHandler(s.uploadSessionService)
+	initiateUploadSessionHandler := handler.NewInitiateUploadSessionHandler(s.uploadService)
 	byteRangesToUploadHandler := handler.NewByteRangesToUploadHandler()
-	uploadFileChunkHandler := handler.NewUploadFileChunkHandler(s.uploadSessionService)
+	uploadFileChunkHandler := handler.NewUploadFileChunkHandler(s.uploadService)
 
 	http.HandleFunc(s.handlerToEndpoint["initiateUploadSession"], initiateUploadSessionHandler.Handle)
 	http.HandleFunc(s.handlerToEndpoint["byteRangesToUpload"], byteRangesToUploadHandler.Handle)

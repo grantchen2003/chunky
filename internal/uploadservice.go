@@ -8,19 +8,19 @@ import (
 	"github.com/grantchen2003/chunky/internal/util"
 )
 
-type UploadSessionService struct {
+type UploadService struct {
 	db         database.Database
 	fileStorer filestorer.FileStorer
 }
 
-func NewUploadSessionService(db database.Database, fileStorer filestorer.FileStorer) *UploadSessionService {
-	return &UploadSessionService{
+func NewUploadService(db database.Database, fileStorer filestorer.FileStorer) *UploadService {
+	return &UploadService{
 		db:         db,
 		fileStorer: fileStorer,
 	}
 }
 
-func (s *UploadSessionService) CreateUploadSession(fileHash []byte, totalFileSizeBytes int) (string, error) {
+func (s *UploadService) CreateUploadSession(fileHash []byte, totalFileSizeBytes int) (string, error) {
 	sessionId, err := util.GenerateRandomHexString(16)
 	if err != nil {
 		return "", err
@@ -34,7 +34,7 @@ func (s *UploadSessionService) CreateUploadSession(fileHash []byte, totalFileSiz
 }
 
 // name this better
-func (s *UploadSessionService) AddFileChunk(sessionId string, fileHash []byte, chunk []byte, startByte int, endByte int) error {
+func (s *UploadService) AddFileChunk(sessionId string, fileHash []byte, chunk []byte, startByte int, endByte int) error {
 	uploadExists, err := s.db.Exists(sessionId, fileHash)
 	if err != nil {
 		return err

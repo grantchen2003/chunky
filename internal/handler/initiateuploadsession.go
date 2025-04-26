@@ -9,12 +9,12 @@ import (
 )
 
 type InitiateUploadSessionHandler struct {
-	uploadSessionService *internal.UploadSessionService
+	uploadService *internal.UploadService
 }
 
-func NewInitiateUploadSessionHandler(uploadSessionService *internal.UploadSessionService) *InitiateUploadSessionHandler {
+func NewInitiateUploadSessionHandler(uploadService *internal.UploadService) *InitiateUploadSessionHandler {
 	return &InitiateUploadSessionHandler{
-		uploadSessionService: uploadSessionService,
+		uploadService: uploadService,
 	}
 }
 
@@ -37,7 +37,7 @@ func (h *InitiateUploadSessionHandler) Handle(w http.ResponseWriter, r *http.Req
 	}
 	defer r.Body.Close()
 
-	sessionId, err := h.uploadSessionService.CreateUploadSession(payload.FileHash, payload.TotalFileSizeBytes)
+	sessionId, err := h.uploadService.CreateUploadSession(payload.FileHash, payload.TotalFileSizeBytes)
 	if err != nil {
 		http.Error(w, "Failed to create upload session", http.StatusInternalServerError)
 		log.Printf("Error creating uploading session response: %v", err)

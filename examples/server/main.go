@@ -8,7 +8,8 @@ import (
 )
 
 func main() {
-	server, err := chunky.NewServer(":8080")
+	port := ":8080"
+	server, err := chunky.NewServer(port)
 	if err != nil {
 		panic(err)
 	}
@@ -17,6 +18,8 @@ func main() {
 	server.SetByteRangesToUploadEndpoint("/my-custom-byte-ranges-to-upload-endpoint")
 	server.SetUploadFileChunkEndpoint("/my-custom-upload-file-chunk-endpoint")
 
-	fmt.Println("Server started on port :8080")
-	log.Fatal(server.Start())
+	fmt.Printf("Server started on port %s\n", port)
+	if err := server.Start(); err != nil {
+		log.Fatal(err)
+	}
 }

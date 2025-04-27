@@ -3,8 +3,8 @@ package upload
 import (
 	"bytes"
 
-	"github.com/grantchen2003/chunky/internal"
-	us "github.com/grantchen2003/chunky/internal/upload/uploadstorer"
+	"github.com/grantchen2003/chunky/internal/client/file"
+	us "github.com/grantchen2003/chunky/internal/client/upload/uploadstorer"
 )
 
 type Validator struct {
@@ -48,7 +48,7 @@ func (v Validator) fileHasChangedSinceLastUpload() bool {
 			return false, err
 		}
 
-		currFileHash, err := internal.HashFile(v.filePath)
+		currFileHash, err := file.HashFile(v.filePath)
 		if err != nil {
 			return false, err
 		}

@@ -3,8 +3,7 @@ package upload
 import (
 	"context"
 
-	"github.com/grantchen2003/chunky/internal"
-	us "github.com/grantchen2003/chunky/internal/upload/uploadstorer"
+	us "github.com/grantchen2003/chunky/internal/client/upload/uploadstorer"
 )
 
 // NEED TO REFACTOR AND PASS CTX DOWN TO PREVENT GOROUTINE LEAKS
@@ -39,7 +38,7 @@ func NewCoordinator(url string, filePath string, storer us.UploadStorer, validat
 
 func (c *Coordinator) ValidateUpload() error {
 	if c.isUploading {
-		return internal.ErrPausedOnNoOngoingUpload
+		return ErrPausedOnNoOngoingUpload
 	}
 
 	return nil
@@ -63,7 +62,7 @@ func (c *Coordinator) Upload(uploadProgressChan chan<- Progress) Result {
 
 func (c *Coordinator) ValidatePauseUpload() error {
 	if !c.isUploading {
-		return internal.ErrPausedOnNoOngoingUpload
+		return ErrPausedOnNoOngoingUpload
 	}
 
 	return nil
@@ -81,15 +80,15 @@ func (c *Coordinator) PauseUpload() error {
 
 func (c *Coordinator) ValidateResumeUpload() error {
 	if c.isUploading {
-		return internal.ErrResumedOnOngoingUpload
+		return ErrResumedOnOngoingUpload
 	}
 
 	if !c.validator.hasExistingUpload() {
-		return internal.ErrResumedOnNonExistingUpload
+		return ErrResumedOnNonExistingUpload
 	}
 
 	if c.validator.fileHasChangedSinceLastUpload() {
-		return internal.ErrResumedOnChangedFile
+		return ErrResumedOnChangedFile
 	}
 
 	return nil

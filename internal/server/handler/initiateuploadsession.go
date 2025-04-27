@@ -5,14 +5,14 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/grantchen2003/chunky/internal"
+	"github.com/grantchen2003/chunky/internal/server/service"
 )
 
 type InitiateUploadSessionHandler struct {
-	uploadService *internal.UploadService
+	uploadService *service.UploadService
 }
 
-func NewInitiateUploadSessionHandler(uploadService *internal.UploadService) *InitiateUploadSessionHandler {
+func NewInitiateUploadSessionHandler(uploadService *service.UploadService) *InitiateUploadSessionHandler {
 	return &InitiateUploadSessionHandler{
 		uploadService: uploadService,
 	}

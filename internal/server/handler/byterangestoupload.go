@@ -5,14 +5,14 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/grantchen2003/chunky/internal"
+	"github.com/grantchen2003/chunky/internal/server/service"
 )
 
 type ByteRangesToUploadHandler struct {
-	uploadService *internal.UploadService
+	uploadService *service.UploadService
 }
 
-func NewByteRangesToUploadHandler(uploadService *internal.UploadService) *ByteRangesToUploadHandler {
+func NewByteRangesToUploadHandler(uploadService *service.UploadService) *ByteRangesToUploadHandler {
 	return &ByteRangesToUploadHandler{
 		uploadService: uploadService,
 	}

@@ -1,7 +1,7 @@
 package chunky
 
 import (
-	"github.com/grantchen2003/chunky/internal/upload"
+	"github.com/grantchen2003/chunky/internal/client/upload"
 	"github.com/grantchen2003/chunky/pkg/client"
 	"github.com/grantchen2003/chunky/pkg/server"
 )

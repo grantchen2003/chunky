@@ -1,10 +1,10 @@
-package internal
+package service
 
 import (
 	"fmt"
 
-	"github.com/grantchen2003/chunky/internal/database"
-	"github.com/grantchen2003/chunky/internal/filestorer"
+	"github.com/grantchen2003/chunky/internal/server/database"
+	"github.com/grantchen2003/chunky/internal/server/filestorer"
 	"github.com/grantchen2003/chunky/internal/util"
 )
 

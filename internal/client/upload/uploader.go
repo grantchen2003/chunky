@@ -3,9 +3,9 @@ package upload
 import (
 	"os"
 
-	"github.com/grantchen2003/chunky/internal"
-	"github.com/grantchen2003/chunky/internal/byterange"
-	us "github.com/grantchen2003/chunky/internal/upload/uploadstorer"
+	"github.com/grantchen2003/chunky/internal/client/byterange"
+	"github.com/grantchen2003/chunky/internal/client/file"
+	us "github.com/grantchen2003/chunky/internal/client/upload/uploadstorer"
 )
 
 // NEED TO REFACTOR
@@ -28,7 +28,7 @@ func NewUploader(url string, filePath string, progressChan chan<- Progress, uplo
 }
 
 func (u *Uploader) Upload() error {
-	fileHash, err := internal.HashFile(u.filePath)
+	fileHash, err := file.HashFile(u.filePath)
 	if err != nil {
 		return err
 	}
@@ -83,7 +83,7 @@ func (u *Uploader) byteRangesToUpload(sessionId string, fileHash []byte) ([]byte
 }
 
 func (u *Uploader) streamFileUpload(sessionId string, fileHash []byte) error {
-	bfr, err := internal.NewBufferedFileReader(u.filePath)
+	bfr, err := file.NewBufferedFileReader(u.filePath)
 	if err != nil {
 		return err
 	}
@@ -112,7 +112,7 @@ func (u *Uploader) streamFileUpload(sessionId string, fileHash []byte) error {
 }
 
 func (u *Uploader) streamFileResumeUpload(sessionId string, fileHash []byte, byteRanges []byterange.ByteRange) error {
-	bfr, err := internal.NewBufferedFileReader(u.filePath)
+	bfr, err := file.NewBufferedFileReader(u.filePath)
 	if err != nil {
 		return err
 	}
@@ -140,7 +140,7 @@ func (u *Uploader) streamFileResumeUpload(sessionId string, fileHash []byte, byt
 	return nil
 }
 
-func (u *Uploader) uploadFileChunkWithProgress(sessionId string, fileHash []byte, fileChunk internal.FileChunk, totalBytesToUpload int) error {
+func (u *Uploader) uploadFileChunkWithProgress(sessionId string, fileHash []byte, fileChunk file.FileChunk, totalBytesToUpload int) error {
 	err := u.uploadRequester.makeUploadFileChunkRequest(sessionId, fileHash, fileChunk.Data, fileChunk.ByteRange.StartByte, fileChunk.ByteRange.EndByte)
 	if err != nil {
 		return err

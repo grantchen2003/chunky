@@ -1,8 +1,8 @@
 package client
 
 import (
-	"github.com/grantchen2003/chunky/internal/upload"
-	us "github.com/grantchen2003/chunky/internal/upload/uploadstorer"
+	"github.com/grantchen2003/chunky/internal/client/upload"
+	us "github.com/grantchen2003/chunky/internal/client/upload/uploadstorer"
 )
 
 type Client struct {

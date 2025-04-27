@@ -3,16 +3,16 @@ package server
 import (
 	"net/http"
 
-	"github.com/grantchen2003/chunky/internal"
-	"github.com/grantchen2003/chunky/internal/database"
-	"github.com/grantchen2003/chunky/internal/filestorer"
-	"github.com/grantchen2003/chunky/internal/handler"
+	"github.com/grantchen2003/chunky/internal/server/database"
+	"github.com/grantchen2003/chunky/internal/server/filestorer"
+	"github.com/grantchen2003/chunky/internal/server/handler"
+	"github.com/grantchen2003/chunky/internal/server/service"
 )
 
 type Server struct {
 	port              string
 	handlerToEndpoint map[string]string
-	uploadService     *internal.UploadService
+	uploadService     *service.UploadService
 }
 
 func NewServer(port string) (*Server, error) {
@@ -26,7 +26,7 @@ func NewServer(port string) (*Server, error) {
 		return nil, err
 	}
 
-	uploadService := internal.NewUploadService(db, localFileStore)
+	uploadService := service.NewUploadService(db, localFileStore)
 
 	return &Server{
 		port: port,

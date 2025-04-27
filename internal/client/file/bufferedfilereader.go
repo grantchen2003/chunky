@@ -1,4 +1,4 @@
-package internal
+package file
 
 import (
 	"bufio"
@@ -6,7 +6,7 @@ import (
 	"iter"
 	"os"
 
-	"github.com/grantchen2003/chunky/internal/byterange"
+	"github.com/grantchen2003/chunky/internal/client/byterange"
 )
 
 // implement ReadChunkWithRange

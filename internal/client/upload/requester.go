@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/grantchen2003/chunky/internal/byterange"
+	"github.com/grantchen2003/chunky/internal/client/byterange"
 )
 
 type Requester struct {

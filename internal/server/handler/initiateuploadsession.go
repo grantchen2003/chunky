@@ -26,7 +26,7 @@ func (h *InitiateUploadSessionHandler) Handle(w http.ResponseWriter, r *http.Req
 
 	type Payload struct {
 		FileHash           []byte `json:"fileHash"`
-		TotalFileSizeBytes int    `json:"TotalFileSizeBytes"`
+		TotalFileSizeBytes int    `json:"totalFileSizeBytes"`
 	}
 
 	var payload Payload

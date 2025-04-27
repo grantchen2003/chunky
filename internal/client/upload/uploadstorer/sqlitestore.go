@@ -3,7 +3,7 @@ package storer
 import (
 	"database/sql"
 
-	_ "github.com/mattn/go-sqlite3" // or your DB driver
+	_ "github.com/mattn/go-sqlite3"
 )
 
 type SqliteUploadStore struct {

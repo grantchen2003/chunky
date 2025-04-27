@@ -33,8 +33,8 @@ func NewRequester(baseUrl string, endpoints *Endpoints) *Requester {
 
 func (r Requester) makeInitiateUploadSessionRequest(fileHash []byte, totalFileSizeBytes int) (string, error) {
 	type Payload struct {
-		FileHash           []byte `json:"fileHahs"`
-		TotalFileSizeBytes int    `json:"TotalFileSizeBytes"`
+		FileHash           []byte `json:"fileHash"`
+		TotalFileSizeBytes int    `json:"totalFileSizeBytes"`
 	}
 
 	payload := Payload{FileHash: fileHash, TotalFileSizeBytes: totalFileSizeBytes}

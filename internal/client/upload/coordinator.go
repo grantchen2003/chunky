@@ -2,6 +2,7 @@ package upload
 
 import (
 	"context"
+	"errors"
 
 	us "github.com/grantchen2003/chunky/internal/client/upload/uploadstorer"
 )
@@ -122,17 +123,16 @@ func (c *Coordinator) runWithUploadLifeCycle(uploadTask func(ctx context.Context
 		doneChan <- err
 	}()
 
-	for {
-		select {
-		case <-c.ctx.Done():
-			return UploadResultPaused
+	err := <-doneChan
 
-		case err := <-doneChan:
-			if err != nil {
-				return UploadResultError
-			}
+	switch {
+	case errors.Is(err, context.Canceled):
+		return UploadResultPaused
 
-			return UploadResultSuccess
-		}
+	case err != nil:
+		return UploadResultError
+
+	default:
+		return UploadResultSuccess
 	}
 }

@@ -65,7 +65,16 @@ func (u *Uploader) initiateUploadSession(fileHash []byte) (string, error) {
 	}
 
 	sessionId, err := u.uploadRequester.makeInitiateUploadSessionRequest(fileHash, totalFileSizeBytes)
-	return sessionId, err
+	if err != nil {
+		return "", err
+	}
+
+	err = u.uploadStorer.Store(sessionId, u.url, u.filePath, fileHash)
+	if err != nil {
+		return "", err
+	}
+
+	return sessionId, nil
 }
 
 func (u *Uploader) getFileSizeBytes() (int, error) {
@@ -143,11 +152,6 @@ func (u *Uploader) streamFileResumeUpload(ctx context.Context, sessionId string,
 
 func (u *Uploader) uploadFileChunkWithProgress(ctx context.Context, sessionId string, fileHash []byte, fileChunk file.FileChunk, totalBytesToUpload int) error {
 	err := u.uploadRequester.makeUploadFileChunkRequest(sessionId, fileHash, fileChunk.Data, fileChunk.ByteRange.StartByte, fileChunk.ByteRange.EndByte)
-	if err != nil {
-		return err
-	}
-
-	err = u.uploadStorer.Store(sessionId, u.url, u.filePath, fileHash)
 	if err != nil {
 		return err
 	}

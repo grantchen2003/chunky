@@ -6,7 +6,6 @@ import (
 	us "github.com/grantchen2003/chunky/internal/client/upload/uploadstorer"
 )
 
-// NEED TO REFACTOR AND PASS CTX DOWN TO PREVENT GOROUTINE LEAKS
 // figure out the interface pointer thing, what should be pointer and what shouldnt be (why cant i have pointer to interface passed as param)
 type Coordinator struct {
 	ctx       context.Context
@@ -49,10 +48,10 @@ func (c *Coordinator) Upload(uploadProgressChan chan<- Progress) Result {
 		return UploadResultError
 	}
 
-	uploadTask := func() error {
+	uploadTask := func(ctx context.Context) error {
 		uploader := NewUploader(c.url, c.filePath, uploadProgressChan, *c.storer, c.requester)
 
-		err := uploader.Upload()
+		err := uploader.Upload(ctx)
 
 		return err
 	}
@@ -99,10 +98,10 @@ func (c *Coordinator) ResumeUpload(uploadProgressChan chan<- Progress) Result {
 		return UploadResultError
 	}
 
-	resumeUploadTask := func() error {
+	resumeUploadTask := func(ctx context.Context) error {
 		uploader := NewUploader(c.url, c.filePath, uploadProgressChan, *c.storer, c.requester)
 
-		err := uploader.ResumeUpload()
+		err := uploader.ResumeUpload(ctx)
 
 		return err
 	}
@@ -110,7 +109,7 @@ func (c *Coordinator) ResumeUpload(uploadProgressChan chan<- Progress) Result {
 	return c.runWithUploadLifeCycle(resumeUploadTask)
 }
 
-func (c *Coordinator) runWithUploadLifeCycle(uploadTask func() error) Result {
+func (c *Coordinator) runWithUploadLifeCycle(uploadTask func(ctx context.Context) error) Result {
 	c.isUploading = true
 	defer func() { c.isUploading = false }()
 
@@ -119,7 +118,7 @@ func (c *Coordinator) runWithUploadLifeCycle(uploadTask func() error) Result {
 	doneChan := make(chan error)
 	go func() {
 		defer close(doneChan)
-		err := uploadTask()
+		err := uploadTask(c.ctx)
 		doneChan <- err
 	}()
 

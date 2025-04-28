@@ -1,6 +1,7 @@
 package upload
 
 import (
+	"context"
 	"os"
 
 	"github.com/grantchen2003/chunky/internal/client/byterange"
@@ -27,7 +28,7 @@ func NewUploader(url string, filePath string, progressChan chan<- Progress, uplo
 	}
 }
 
-func (u *Uploader) Upload() error {
+func (u *Uploader) Upload(ctx context.Context) error {
 	fileHash, err := file.HashFile(u.filePath)
 	if err != nil {
 		return err
@@ -38,11 +39,11 @@ func (u *Uploader) Upload() error {
 		return err
 	}
 
-	err = u.streamFileUpload(sessionId, fileHash)
+	err = u.streamFileUpload(ctx, sessionId, fileHash)
 	return err
 }
 
-func (u *Uploader) ResumeUpload() error {
+func (u *Uploader) ResumeUpload(ctx context.Context) error {
 	sessionId, fileHash, err := u.uploadStorer.GetSessionIdAndFileHash(u.url, u.filePath)
 	if err != nil {
 		return err
@@ -53,7 +54,7 @@ func (u *Uploader) ResumeUpload() error {
 		return err
 	}
 
-	err = u.streamFileResumeUpload(sessionId, fileHash, byteRangesToUpload)
+	err = u.streamFileResumeUpload(ctx, sessionId, fileHash, byteRangesToUpload)
 	return err
 }
 
@@ -82,7 +83,7 @@ func (u *Uploader) byteRangesToUpload(sessionId string, fileHash []byte) ([]byte
 	return byteRanges, err
 }
 
-func (u *Uploader) streamFileUpload(sessionId string, fileHash []byte) error {
+func (u *Uploader) streamFileUpload(ctx context.Context, sessionId string, fileHash []byte) error {
 	bfr, err := file.NewBufferedFileReader(u.filePath)
 	if err != nil {
 		return err
@@ -103,7 +104,7 @@ func (u *Uploader) streamFileUpload(sessionId string, fileHash []byte) error {
 		// Do not make this concurrent: uploading chunks in parallel would bypass
 		// the buffered reader's memory management, potentially loading the entire
 		// file into memory. Sequential uploads preserve the intended low memory footprint.
-		if err := u.uploadFileChunkWithProgress(sessionId, fileHash, fileChunk, fileSizeBytes); err != nil {
+		if err := u.uploadFileChunkWithProgress(ctx, sessionId, fileHash, fileChunk, fileSizeBytes); err != nil {
 			return err
 		}
 	}
@@ -111,7 +112,7 @@ func (u *Uploader) streamFileUpload(sessionId string, fileHash []byte) error {
 	return nil
 }
 
-func (u *Uploader) streamFileResumeUpload(sessionId string, fileHash []byte, byteRanges []byterange.ByteRange) error {
+func (u *Uploader) streamFileResumeUpload(ctx context.Context, sessionId string, fileHash []byte, byteRanges []byterange.ByteRange) error {
 	bfr, err := file.NewBufferedFileReader(u.filePath)
 	if err != nil {
 		return err
@@ -132,7 +133,7 @@ func (u *Uploader) streamFileResumeUpload(sessionId string, fileHash []byte, byt
 		// Do not make this concurrent: uploading chunks in parallel would bypass
 		// the buffered reader's memory management, potentially loading the entire
 		// file into memory. Sequential uploads preserve the intended low memory footprint.
-		if err := u.uploadFileChunkWithProgress(sessionId, fileHash, fileChunk, totalBytesToUpload); err != nil {
+		if err := u.uploadFileChunkWithProgress(ctx, sessionId, fileHash, fileChunk, totalBytesToUpload); err != nil {
 			return err
 		}
 	}
@@ -140,7 +141,7 @@ func (u *Uploader) streamFileResumeUpload(sessionId string, fileHash []byte, byt
 	return nil
 }
 
-func (u *Uploader) uploadFileChunkWithProgress(sessionId string, fileHash []byte, fileChunk file.FileChunk, totalBytesToUpload int) error {
+func (u *Uploader) uploadFileChunkWithProgress(ctx context.Context, sessionId string, fileHash []byte, fileChunk file.FileChunk, totalBytesToUpload int) error {
 	err := u.uploadRequester.makeUploadFileChunkRequest(sessionId, fileHash, fileChunk.Data, fileChunk.ByteRange.StartByte, fileChunk.ByteRange.EndByte)
 	if err != nil {
 		return err
@@ -151,7 +152,11 @@ func (u *Uploader) uploadFileChunkWithProgress(sessionId string, fileHash []byte
 		return err
 	}
 
-	u.progressChan <- Progress{UploadedBytes: fileChunk.ByteRange.Size(), TotalBytesToUpload: totalBytesToUpload}
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case u.progressChan <- Progress{UploadedBytes: fileChunk.ByteRange.Size(), TotalBytesToUpload: totalBytesToUpload}:
+	}
 
 	return nil
 }

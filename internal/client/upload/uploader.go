@@ -128,10 +128,7 @@ func (u *Uploader) streamFileResumeUpload(ctx context.Context, sessionId string,
 	}
 	defer bfr.Close()
 
-	var totalBytesToUpload int
-	for _, br := range byterange.Merge(byteRanges) {
-		totalBytesToUpload += br.Size()
-	}
+	totalBytesToUpload := byterange.TotalByteCount(byteRanges)
 
 	const bufferSizeBytes = 1 << 20 // 1 MiB
 	for fileChunk, err := range bfr.ReadChunkWithRange(bufferSizeBytes, byteRanges) {

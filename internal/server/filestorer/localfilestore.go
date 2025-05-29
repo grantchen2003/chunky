@@ -15,23 +15,14 @@ type LocalFileStore struct {
 // since we only check the dir exists in constructor, we assume
 // dir is not deleted throughout all of server's lifetime
 func NewLocalFileStore(dirPath string) (*LocalFileStore, error) {
-	dirExists, err := util.DirExists(dirPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if !dirExists {
-		if err := os.Mkdir(dirPath, os.ModeDir); err != nil {
-			return nil, err
-		}
-	}
-
 	return &LocalFileStore{
 		dirPath: dirPath,
 	}, nil
 }
 
 func (lfs *LocalFileStore) Store(data []byte) (chunkId string, err error) {
+	lfs.createDirIfNotExists()
+
 	chunkId, err = util.GenerateRandomHexString(16)
 	if err != nil {
 		return "", err
@@ -53,4 +44,17 @@ func (lfs *LocalFileStore) Store(data []byte) (chunkId string, err error) {
 	}
 
 	return chunkId, err
+}
+
+func (lfs *LocalFileStore) createDirIfNotExists() error {
+	dirExists, err := util.DirExists(lfs.dirPath)
+	if err != nil {
+		return err
+	}
+
+	if !dirExists {
+		err = os.Mkdir(lfs.dirPath, os.ModeDir)
+	}
+
+	return err
 }

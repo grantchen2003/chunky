@@ -110,6 +110,12 @@ func (u *Uploader) streamFileUpload(ctx context.Context, sessionId string, fileH
 			return err
 		}
 
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+
 		// Do not make this concurrent: uploading chunks in parallel would bypass
 		// the buffered reader's memory management, potentially loading the entire
 		// file into memory. Sequential uploads preserve the intended low memory footprint.
@@ -136,6 +142,12 @@ func (u *Uploader) streamFileResumeUpload(ctx context.Context, sessionId string,
 			return err
 		}
 
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+
 		// Do not make this concurrent: uploading chunks in parallel would bypass
 		// the buffered reader's memory management, potentially loading the entire
 		// file into memory. Sequential uploads preserve the intended low memory footprint.
@@ -153,11 +165,7 @@ func (u *Uploader) uploadFileChunkWithProgress(ctx context.Context, sessionId st
 		return err
 	}
 
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case u.progressChan <- Progress{UploadedBytes: fileChunk.ByteRange.Size(), TotalBytesToUpload: totalBytesToUpload}:
-	}
+	u.progressChan <- Progress{UploadedBytes: fileChunk.ByteRange.Size(), TotalBytesToUpload: totalBytesToUpload}
 
 	return nil
 }

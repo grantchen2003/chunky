@@ -1,8 +1,7 @@
 package upload
 
 type Status = struct {
-	Message       string
-	IsTerminating bool
+	Message string
 }
 
 var (

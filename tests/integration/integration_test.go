@@ -155,12 +155,18 @@ func Test_Upload(t *testing.T) {
 			t.Errorf("Error: chunky.db not created")
 			return
 		}
-		t.Errorf("Error getting file infor for chunky.db")
+		t.Errorf("Error getting file info for chunky.db")
 		return
 	}
 }
 
 func Test_UploadWithNonExistentFile(t *testing.T) {
+	baseDirPath, err := os.Getwd()
+	if err != nil {
+		t.Errorf("Error getting current directory path: %v", err)
+		return
+	}
+
 	client, err := client.NewClient(
 		"serverUrl",
 		"non-existent-file",
@@ -170,6 +176,12 @@ func Test_UploadWithNonExistentFile(t *testing.T) {
 			UploadFileChunk:       "/uploadFileChunk",
 		},
 	)
+	defer func() {
+		dbPath := filepath.Join(baseDirPath, "chunky.db")
+		if err := os.Remove(dbPath); err != nil {
+			t.Errorf("Error deleting chunky.db: %v", err)
+		}
+	}()
 
 	if err != nil {
 		t.Errorf("error with NewClient emitted")
@@ -214,16 +226,15 @@ func Test_UploadWithNonExistentFile(t *testing.T) {
 		return
 	}
 
-	baseDirPath, err := os.Getwd()
-	if err != nil {
-		t.Errorf("Error getting current directory path: %v", err)
-		return
-	}
-
 	dbPath := filepath.Join(baseDirPath, "chunky.db")
 	_, err = os.Stat(dbPath)
-	if err != nil && !os.IsNotExist(err) {
-		t.Errorf("Error: chunky.db created")
+	if err != nil {
+		if os.IsNotExist(err) {
+			t.Errorf("Error: chunky.db not created")
+			return
+		}
+
+		t.Errorf("Error getting file info for chunky.db")
 		return
 	}
 }
@@ -239,6 +250,11 @@ func Test_UploadWithEmptyFile(t *testing.T) {
 
 		if err := os.Remove(tempDirPath); err != nil {
 			t.Errorf("Error removing temp directory: %v", err)
+		}
+
+		dbPath := filepath.Join(baseDirPath, "chunky.db")
+		if err := os.Remove(dbPath); err != nil {
+			t.Errorf("Error deleting chunky.db: %v", err)
 		}
 	}()
 
@@ -297,8 +313,13 @@ func Test_UploadWithEmptyFile(t *testing.T) {
 
 	dbPath := filepath.Join(baseDirPath, "chunky.db")
 	_, err = os.Stat(dbPath)
-	if err != nil && !os.IsNotExist(err) {
-		t.Errorf("Error: chunky.db created")
+	if err != nil {
+		if os.IsNotExist(err) {
+			t.Errorf("Error: chunky.db not created")
+			return
+		}
+
+		t.Errorf("Error getting file info for chunky.db")
 		return
 	}
 }

@@ -17,18 +17,14 @@ func handleUserCommands(client *chunky.Client) {
 
 	for {
 		input, _ := reader.ReadString('\n')
-
 		input = strings.TrimSpace(input)
 
 		switch input {
 		case "upload":
-
-			start := time.Now()
 			go func() {
 				if err := client.Upload(); err != nil {
 					fmt.Printf("User error: %v\n", err)
 				}
-				fmt.Printf("Upload took %s\n", time.Since(start))
 			}()
 
 		case "pause":
@@ -47,7 +43,7 @@ func handleUserCommands(client *chunky.Client) {
 
 		case "exit":
 			fmt.Println("Exiting...")
-			return
+			os.Exit(0)
 
 		default:
 			fmt.Println("Unknown command")
@@ -75,6 +71,8 @@ func main() {
 	status := <-client.UploadStatusChan()
 	fmt.Println("Status:", status.Message)
 
+	start := time.Now()
+
 	var totalUploadedBytes int
 	for uploadProgress := range client.UploadProgressChan() {
 		totalUploadedBytes += uploadProgress.UploadedBytes
@@ -83,4 +81,6 @@ func main() {
 
 	result := <-client.UploadResultChan()
 	fmt.Println("Result:", result)
+
+	fmt.Printf("Took %s\n", time.Since(start))
 }

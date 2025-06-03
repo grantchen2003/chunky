@@ -103,43 +103,49 @@ func Test_Upload(t *testing.T) {
 		}
 	}()
 
-	var progressCount int
+	status := <-client.UploadStatusChan()
+	if upload.UploadStarted != status {
+		t.Errorf("no UploadStarted status emitted")
+		return
+	}
 
-outer:
-	for {
-		select {
-		case result := <-client.UploadResultChan():
-			if result != upload.UploadResultSuccess {
-				t.Errorf("no UploadResultSuccess result emitted")
-				return
-			}
+	_, isOpen := <-client.UploadStatusChan()
+	if isOpen {
+		t.Errorf("UploadStatusChan not closed")
+		return
+	}
 
-			break outer
+	chunkSize := 1 << 20
+	for i := 0; i < len(tempFileData); i += chunkSize {
+		progress := <-client.UploadProgressChan()
 
-		case status := <-client.UploadStatusChan():
-			if upload.UploadStarted != status {
-				t.Errorf("no UploadStarted status emitted")
-				return
-			}
-
-		case progress := <-client.UploadProgressChan():
-			progressCount++
-			chunkSize := 1 << 20
-
-			expectedProgress := upload.Progress{
-				UploadedBytes:      chunkSize,
-				TotalBytesToUpload: len(tempFileData),
-			}
-
-			if chunkSize*progressCount > len(tempFileData) {
-				expectedProgress.UploadedBytes = len(tempFileData) % chunkSize
-			}
-
-			if progress != expectedProgress {
-				t.Errorf("Wrong progress emitted")
-				return
-			}
+		expectedProgress := upload.Progress{
+			UploadedBytes:      min(len(tempFileData)-i, chunkSize),
+			TotalBytesToUpload: len(tempFileData),
 		}
+
+		if progress != expectedProgress {
+			t.Errorf("Wrong progress emitted")
+			return
+		}
+	}
+
+	_, isOpen = <-client.UploadProgressChan()
+	if isOpen {
+		t.Errorf("UploadProgressChan not closed")
+		return
+	}
+
+	result := <-client.UploadResultChan()
+	if result != upload.UploadResultSuccess {
+		t.Errorf("no UploadResultSuccess result emitted")
+		return
+	}
+
+	_, isOpen = <-client.UploadResultChan()
+	if isOpen {
+		t.Errorf("UploadResultChan not closed")
+		return
 	}
 
 	dbPath := filepath.Join(baseDirPath, "chunky.db")
@@ -153,6 +159,7 @@ outer:
 		return
 	}
 }
+
 func Test_UploadWithNonExistentFile(t *testing.T) {
 	client, err := client.NewClient(
 		"serverUrl",
@@ -177,23 +184,34 @@ func Test_UploadWithNonExistentFile(t *testing.T) {
 		}
 	}()
 
-outer:
-	for {
-		select {
-		case result := <-client.UploadResultChan():
-			if result != upload.UploadResultError {
-				t.Errorf("no UploadResultError result emitted")
-				return
-			}
+	status := <-client.UploadStatusChan()
+	if status != upload.UploadStarted {
+		t.Errorf("no UploadStarted status emitted")
+		return
+	}
 
-			break outer
+	_, isOpen := <-client.UploadStatusChan()
+	if isOpen {
+		t.Errorf("UploadStatusChan not closed")
+		return
+	}
 
-		case status := <-client.UploadStatusChan():
-			if status != upload.UploadStarted {
-				t.Errorf("no UploadStarted status emitted")
-				return
-			}
-		}
+	_, isOpen = <-client.UploadProgressChan()
+	if isOpen {
+		t.Errorf("UploadProgressChan not closed")
+		return
+	}
+
+	result := <-client.UploadResultChan()
+	if result != upload.UploadResultError {
+		t.Errorf("no UploadResultError result emitted")
+		return
+	}
+
+	_, isOpen = <-client.UploadResultChan()
+	if isOpen {
+		t.Errorf("UploadResultChan not closed")
+		return
 	}
 
 	baseDirPath, err := os.Getwd()
@@ -247,23 +265,34 @@ func Test_UploadWithEmptyFile(t *testing.T) {
 		}
 	}()
 
-outer:
-	for {
-		select {
-		case result := <-client.UploadResultChan():
-			if result != upload.UploadResultSuccess {
-				t.Errorf("no UploadResultSuccess result emitted")
-				return
-			}
+	status := <-client.UploadStatusChan()
+	if status != upload.UploadStarted {
+		t.Errorf("no UploadStarted status emitted")
+		return
+	}
 
-			break outer
+	_, isOpen := <-client.UploadStatusChan()
+	if isOpen {
+		t.Errorf("UploadStatusChan not closed")
+		return
+	}
 
-		case status := <-client.UploadStatusChan():
-			if status != upload.UploadStarted {
-				t.Errorf("no UploadStarted status emitted")
-				return
-			}
-		}
+	_, isOpen = <-client.UploadProgressChan()
+	if isOpen {
+		t.Errorf("UploadProgressChan not closed")
+		return
+	}
+
+	result := <-client.UploadResultChan()
+	if result != upload.UploadResultSuccess {
+		t.Errorf("no UploadResultSuccess result emitted")
+		return
+	}
+
+	_, isOpen = <-client.UploadResultChan()
+	if isOpen {
+		t.Errorf("UploadResultChan not closed")
+		return
 	}
 
 	dbPath := filepath.Join(baseDirPath, "chunky.db")

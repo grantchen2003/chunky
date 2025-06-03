@@ -6,8 +6,10 @@ import (
 )
 
 type Client struct {
-	notifier    *upload.Notifier
-	coordinator *upload.Coordinator
+	progressChan chan upload.Progress
+	resultChan   chan upload.Result
+	statusChan   chan upload.Status
+	coordinator  *upload.Coordinator
 }
 
 func NewClient(url string, filePath string, uploadEndpoints *upload.Endpoints) (*Client, error) {
@@ -20,8 +22,10 @@ func NewClient(url string, filePath string, uploadEndpoints *upload.Endpoints) (
 	validator := upload.NewValidator(url, filePath, storer)
 
 	return &Client{
-		notifier:    upload.NewNotifier(),
-		coordinator: upload.NewCoordinator(url, filePath, storer, validator, requester),
+		progressChan: make(chan upload.Progress),
+		resultChan:   make(chan upload.Result),
+		statusChan:   make(chan upload.Status),
+		coordinator:  upload.NewCoordinator(url, filePath, storer, validator, requester),
 	}, nil
 }
 
@@ -30,13 +34,14 @@ func (c *Client) Upload() error {
 		return err
 	}
 
-	c.notifier.StatusChan <- upload.UploadStarted
+	c.statusChan <- upload.UploadStarted
+	close(c.statusChan)
 
-	uploadResult := c.coordinator.Upload(c.notifier.ProgressChan)
+	uploadResult := c.coordinator.Upload(c.progressChan)
+	close(c.progressChan)
 
-	c.notifier.ResultChan <- uploadResult
-
-	c.notifier.Close()
+	c.resultChan <- uploadResult
+	close(c.resultChan)
 
 	return nil
 }
@@ -56,25 +61,26 @@ func (c *Client) Resume() error {
 		return err
 	}
 
-	c.notifier.StatusChan <- upload.UploadResumed
+	c.statusChan <- upload.UploadResumed
+	close(c.statusChan)
 
-	uploadResult := c.coordinator.ResumeUpload(c.notifier.ProgressChan)
+	uploadResult := c.coordinator.ResumeUpload(c.progressChan)
+	close(c.progressChan)
 
-	c.notifier.ResultChan <- uploadResult
-
-	c.notifier.Close()
+	c.resultChan <- uploadResult
+	close(c.resultChan)
 
 	return nil
 }
 
 func (c *Client) UploadProgressChan() <-chan upload.Progress {
-	return c.notifier.ProgressChan
+	return c.progressChan
 }
 
 func (c *Client) UploadStatusChan() <-chan upload.Status {
-	return c.notifier.StatusChan
+	return c.statusChan
 }
 
 func (c *Client) UploadResultChan() <-chan upload.Result {
-	return c.notifier.ResultChan
+	return c.resultChan
 }

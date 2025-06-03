@@ -72,20 +72,15 @@ func main() {
 
 	go handleUserCommands(client)
 
+	status := <-client.UploadStatusChan()
+	fmt.Println("Status:", status.Message)
+
 	var totalUploadedBytes int
-
-	for {
-		select {
-		case result := <-client.UploadResultChan():
-			fmt.Println("Result:", result)
-			return
-
-		case status := <-client.UploadStatusChan():
-			fmt.Println("Status:", status.Message)
-
-		case uploadProgress := <-client.UploadProgressChan():
-			totalUploadedBytes += uploadProgress.UploadedBytes
-			fmt.Println("Upload progress:", 100*totalUploadedBytes/uploadProgress.TotalBytesToUpload)
-		}
+	for uploadProgress := range client.UploadProgressChan() {
+		totalUploadedBytes += uploadProgress.UploadedBytes
+		fmt.Println("Upload progress:", 100*totalUploadedBytes/uploadProgress.TotalBytesToUpload)
 	}
+
+	result := <-client.UploadResultChan()
+	fmt.Println("Result:", result)
 }

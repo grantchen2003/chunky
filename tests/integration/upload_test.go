@@ -12,23 +12,11 @@ import (
 
 func Test_Upload(t *testing.T) {
 	tempFileData := strings.Repeat("dummy data\n", 100000)
-	mockServer, baseDirPath, tempDirPath, tempFile := SetupTest(t, tempFileData)
-	defer func() {
-		mockServer.Close()
-
-		if err := os.Remove(tempFile.Name()); err != nil {
-			t.Errorf("Error removing temp file: %v", err)
-		}
-
-		if err := os.Remove(tempDirPath); err != nil {
-			t.Errorf("Error removing temp directory: %v", err)
-		}
-
-		dbPath := filepath.Join(baseDirPath, "chunky.db")
-		if err := os.Remove(dbPath); err != nil {
-			t.Errorf("Error deleting chunky.db: %v", err)
-		}
-	}()
+	mockServer, baseDirPath, tempFile, cleanUp, err := SetupTest(t, tempFileData)
+	if err != nil {
+		panic(err)
+	}
+	defer cleanUp()
 
 	client, err := client.NewClient(
 		mockServer.URL,
@@ -190,23 +178,12 @@ func Test_UploadWithNonExistentFile(t *testing.T) {
 }
 
 func Test_UploadWithEmptyFile(t *testing.T) {
-	mockServer, baseDirPath, tempDirPath, tempFile := SetupTest(t, "")
-	defer func() {
-		mockServer.Close()
-
-		if err := os.Remove(tempFile.Name()); err != nil {
-			t.Errorf("Error removing temp file: %v", err)
-		}
-
-		if err := os.Remove(tempDirPath); err != nil {
-			t.Errorf("Error removing temp directory: %v", err)
-		}
-
-		dbPath := filepath.Join(baseDirPath, "chunky.db")
-		if err := os.Remove(dbPath); err != nil {
-			t.Errorf("Error deleting chunky.db: %v", err)
-		}
-	}()
+	tempFileData := ""
+	mockServer, baseDirPath, tempFile, cleanUp, err := SetupTest(t, tempFileData)
+	if err != nil {
+		panic(err)
+	}
+	defer cleanUp()
 
 	client, err := client.NewClient(
 		mockServer.URL,

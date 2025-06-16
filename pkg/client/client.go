@@ -34,8 +34,10 @@ func (c *Client) Upload() error {
 		return err
 	}
 
-	c.statusChan <- upload.UploadStarted
-	close(c.statusChan)
+	go func() {
+		c.statusChan <- upload.UploadStarted
+		close(c.statusChan)
+	}()
 
 	uploadResult := c.coordinator.Upload(c.progressChan)
 	close(c.progressChan)
@@ -61,8 +63,10 @@ func (c *Client) Resume() error {
 		return err
 	}
 
-	c.statusChan <- upload.UploadResumed
-	close(c.statusChan)
+	go func() {
+		c.statusChan <- upload.UploadResumed
+		close(c.statusChan)
+	}()
 
 	uploadResult := c.coordinator.ResumeUpload(c.progressChan)
 	close(c.progressChan)

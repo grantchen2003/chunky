@@ -9,7 +9,6 @@ import (
 	us "github.com/grantchen2003/chunky/internal/client/upload/uploadstorer"
 )
 
-// NEED TO REFACTOR
 type Uploader struct {
 	url             string
 	filePath        string
@@ -18,7 +17,13 @@ type Uploader struct {
 	uploadRequester *Requester
 }
 
-func NewUploader(url string, filePath string, progressChan chan<- Progress, uploadStorer us.UploadStorer, uploadRequester *Requester) *Uploader {
+func NewUploader(
+	url string,
+	filePath string,
+	progressChan chan<- Progress,
+	uploadStorer us.UploadStorer,
+	uploadRequester *Requester,
+) *Uploader {
 	return &Uploader{
 		url:             url,
 		filePath:        filePath,
@@ -44,7 +49,9 @@ func (u *Uploader) Upload(ctx context.Context) error {
 }
 
 func (u *Uploader) ResumeUpload(ctx context.Context) error {
-	sessionId, fileHash, err := u.uploadStorer.GetSessionIdAndFileHash(u.url, u.filePath)
+	sessionId, fileHash, err := u.uploadStorer.GetSessionIdAndFileHash(
+		u.url, u.filePath,
+	)
 	if err != nil {
 		return err
 	}
@@ -64,7 +71,9 @@ func (u *Uploader) initiateUploadSession(fileHash []byte) (string, error) {
 		return "", err
 	}
 
-	sessionId, err := u.uploadRequester.makeInitiateUploadSessionRequest(fileHash, totalFileSizeBytes)
+	sessionId, err := u.uploadRequester.makeInitiateUploadSessionRequest(
+		fileHash, totalFileSizeBytes,
+	)
 	if err != nil {
 		return "", err
 	}
@@ -87,12 +96,22 @@ func (u *Uploader) getFileSizeBytes() (int, error) {
 	return int(totalFileSizeBytes), nil
 }
 
-func (u *Uploader) byteRangesToUpload(sessionId string, fileHash []byte) ([]byterange.ByteRange, error) {
-	byteRanges, err := u.uploadRequester.makeByteRangesToUploadRequest(sessionId, fileHash)
+func (u *Uploader) byteRangesToUpload(
+	sessionId string,
+	fileHash []byte,
+) ([]byterange.ByteRange, error) {
+	byteRanges, err := u.uploadRequester.makeByteRangesToUploadRequest(
+		sessionId, fileHash,
+	)
+
 	return byteRanges, err
 }
 
-func (u *Uploader) streamFileUpload(ctx context.Context, sessionId string, fileHash []byte) error {
+func (u *Uploader) streamFileUpload(
+	ctx context.Context,
+	sessionId string,
+	fileHash []byte,
+) error {
 	bfr, err := file.NewBufferedFileReader(u.filePath)
 	if err != nil {
 		return err
@@ -116,10 +135,16 @@ func (u *Uploader) streamFileUpload(ctx context.Context, sessionId string, fileH
 		default:
 		}
 
-		// Do not make this concurrent: uploading chunks in parallel would bypass
-		// the buffered reader's memory management, potentially loading the entire
-		// file into memory. Sequential uploads preserve the intended low memory footprint.
-		if err := u.uploadFileChunkWithProgress(ctx, sessionId, fileHash, fileChunk, fileSizeBytes); err != nil {
+		// Do not make this concurrent: uploading chunks in parallel would
+		// bypass the buffered reader's memory management, potentially loading
+		// the entire file into memory. Sequential uploads preserve the
+		// intended low memory footprint.
+		if err := u.uploadFileChunkWithProgress(
+			sessionId,
+			fileHash,
+			fileChunk,
+			fileSizeBytes,
+		); err != nil {
 			return err
 		}
 	}
@@ -127,7 +152,12 @@ func (u *Uploader) streamFileUpload(ctx context.Context, sessionId string, fileH
 	return nil
 }
 
-func (u *Uploader) streamFileResumeUpload(ctx context.Context, sessionId string, fileHash []byte, byteRanges []byterange.ByteRange) error {
+func (u *Uploader) streamFileResumeUpload(
+	ctx context.Context,
+	sessionId string,
+	fileHash []byte,
+	byteRanges []byterange.ByteRange,
+) error {
 	bfr, err := file.NewBufferedFileReader(u.filePath)
 	if err != nil {
 		return err
@@ -148,10 +178,16 @@ func (u *Uploader) streamFileResumeUpload(ctx context.Context, sessionId string,
 		default:
 		}
 
-		// Do not make this concurrent: uploading chunks in parallel would bypass
-		// the buffered reader's memory management, potentially loading the entire
-		// file into memory. Sequential uploads preserve the intended low memory footprint.
-		if err := u.uploadFileChunkWithProgress(ctx, sessionId, fileHash, fileChunk, totalBytesToUpload); err != nil {
+		// Do not make this concurrent: uploading chunks in parallel would
+		// bypass the buffered reader's memory management, potentially loading
+		// the entire file into memory. Sequential uploads preserve the
+		// intended low memory footprint.
+		if err := u.uploadFileChunkWithProgress(
+			sessionId,
+			fileHash,
+			fileChunk,
+			totalBytesToUpload,
+		); err != nil {
 			return err
 		}
 	}
@@ -159,13 +195,29 @@ func (u *Uploader) streamFileResumeUpload(ctx context.Context, sessionId string,
 	return nil
 }
 
-func (u *Uploader) uploadFileChunkWithProgress(ctx context.Context, sessionId string, fileHash []byte, fileChunk file.FileChunk, totalBytesToUpload int) error {
-	err := u.uploadRequester.makeUploadFileChunkRequest(sessionId, fileHash, fileChunk.Data, fileChunk.ByteRange.StartByte, fileChunk.ByteRange.EndByte)
+func (u *Uploader) uploadFileChunkWithProgress(
+	sessionId string,
+	fileHash []byte,
+	fileChunk file.FileChunk,
+	totalBytesToUpload int,
+) error {
+	err := u.uploadRequester.makeUploadFileChunkRequest(
+		sessionId,
+		fileHash,
+		fileChunk.Data,
+		fileChunk.ByteRange.StartByte,
+		fileChunk.ByteRange.EndByte,
+	)
 	if err != nil {
 		return err
 	}
 
-	u.progressChan <- Progress{UploadedBytes: fileChunk.ByteRange.Size(), TotalBytesToUpload: totalBytesToUpload}
+	go func() {
+		u.progressChan <- Progress{
+			UploadedBytes:      fileChunk.ByteRange.Size(),
+			TotalBytesToUpload: totalBytesToUpload,
+		}
+	}()
 
 	return nil
 }

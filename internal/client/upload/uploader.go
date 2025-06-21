@@ -208,8 +208,8 @@ func (u *Uploader) uploadFileChunkWithProgress(
 		sessionId,
 		fileHash,
 		fileChunk.Data,
-		fileChunk.ByteRange.StartByte,
-		fileChunk.ByteRange.EndByte,
+		fileChunk.ByteRange.StartByte(),
+		fileChunk.ByteRange.EndByte(),
 	)
 	if err != nil {
 		return err

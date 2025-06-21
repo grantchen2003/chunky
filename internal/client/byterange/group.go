@@ -17,7 +17,7 @@ func GroupByteRanges(byteRanges []ByteRange, maxGroupSizeBytes int) [][]ByteRang
 		for {
 			groupCanAddEntireByteRange :=
 				len(group) == 0 && br.Size() <= maxGroupSizeBytes ||
-					len(group) != 0 && br.EndByte-group[0].StartByte+1 <= maxGroupSizeBytes
+					len(group) != 0 && br.endByte-group[0].startByte+1 <= maxGroupSizeBytes
 
 			if groupCanAddEntireByteRange {
 				group = append(group, br)
@@ -26,22 +26,22 @@ func GroupByteRanges(byteRanges []ByteRange, maxGroupSizeBytes int) [][]ByteRang
 
 			groupCanAddPartialByteRange :=
 				len(group) == 0 ||
-					br.StartByte-group[0].StartByte+1 <= maxGroupSizeBytes
+					br.startByte-group[0].startByte+1 <= maxGroupSizeBytes
 
 			if groupCanAddPartialByteRange {
-				groupStartByte := br.StartByte
+				groupStartByte := br.startByte
 				if len(group) != 0 {
-					groupStartByte = group[0].StartByte
+					groupStartByte = group[0].startByte
 				}
 
 				brToAddEndByte := groupStartByte + maxGroupSizeBytes - 1
-				brToAdd, err := NewByteRange(br.StartByte, brToAddEndByte)
+				brToAdd, err := NewByteRange(br.startByte, brToAddEndByte)
 				if err != nil {
 					panic(err)
 				}
 
 				group = append(group, brToAdd)
-				br.StartByte = brToAddEndByte + 1
+				br.startByte = brToAddEndByte + 1
 				continue
 			}
 

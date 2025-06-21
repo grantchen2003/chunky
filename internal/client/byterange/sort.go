@@ -4,10 +4,10 @@ import "sort"
 
 func sortByteRanges(byteRanges []ByteRange) {
 	sort.Slice(byteRanges, func(i int, j int) bool {
-		if byteRanges[i].StartByte == byteRanges[j].StartByte {
-			return byteRanges[i].EndByte <= byteRanges[j].EndByte
+		if byteRanges[i].startByte == byteRanges[j].startByte {
+			return byteRanges[i].endByte <= byteRanges[j].endByte
 		}
 
-		return byteRanges[i].StartByte < byteRanges[j].StartByte
+		return byteRanges[i].startByte < byteRanges[j].startByte
 	})
 }

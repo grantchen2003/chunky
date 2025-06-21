@@ -64,7 +64,7 @@ func (bfr *BufferedFileReader) ReadChunkWithRange(bufferSizeBytes int, byteRange
 
 	return func(yield func(FileChunk, error) bool) {
 		for _, byteRangeGroup := range groupedByteRanges {
-			offset := byteRangeGroup[0].StartByte
+			offset := byteRangeGroup[0].StartByte()
 
 			_, err := bfr.file.Seek(int64(offset), io.SeekStart)
 			if err != nil {
@@ -72,7 +72,7 @@ func (bfr *BufferedFileReader) ReadChunkWithRange(bufferSizeBytes int, byteRange
 				return
 			}
 
-			bufferSizeBytes = byteRangeGroup[len(byteRangeGroup)-1].EndByte - byteRangeGroup[0].StartByte + 1
+			bufferSizeBytes = byteRangeGroup[len(byteRangeGroup)-1].EndByte() - byteRangeGroup[0].StartByte() + 1
 			buffer := make([]byte, bufferSizeBytes)
 			_, err = bfr.reader.Read(buffer)
 			if err != nil {
@@ -87,7 +87,7 @@ func (bfr *BufferedFileReader) ReadChunkWithRange(bufferSizeBytes int, byteRange
 			for _, byteRange := range byteRangeGroup {
 				fc := FileChunk{
 					ByteRange: byteRange,
-					Data:      buffer[byteRange.StartByte-offset : byteRange.EndByte-offset],
+					Data:      buffer[byteRange.StartByte()-offset : byteRange.EndByte()-offset],
 				}
 
 				if !yield(fc, nil) {

@@ -10,8 +10,8 @@ func mergePair(a ByteRange, b ByteRange) (ByteRange, error) {
 	}
 
 	byteRange, err := NewByteRange(
-		min(a.StartByte, b.StartByte),
-		max(a.EndByte, b.EndByte),
+		min(a.startByte, b.startByte),
+		max(a.endByte, b.endByte),
 	)
 
 	return byteRange, err

@@ -10,26 +10,29 @@ import (
 )
 
 type Uploader struct {
-	url             string
-	filePath        string
-	progressChan    chan<- Progress
-	uploadStorer    us.UploadStorer
-	uploadRequester *Requester
+	url               string
+	filePath          string
+	maxChunkSizeBytes int
+	progressChan      chan<- Progress
+	uploadStorer      us.UploadStorer
+	uploadRequester   *Requester
 }
 
 func NewUploader(
 	url string,
 	filePath string,
+	maxChunkSizeBytes int,
 	progressChan chan<- Progress,
 	uploadStorer us.UploadStorer,
 	uploadRequester *Requester,
 ) *Uploader {
 	return &Uploader{
-		url:             url,
-		filePath:        filePath,
-		progressChan:    progressChan,
-		uploadStorer:    uploadStorer,
-		uploadRequester: uploadRequester,
+		url:               url,
+		filePath:          filePath,
+		maxChunkSizeBytes: maxChunkSizeBytes,
+		progressChan:      progressChan,
+		uploadStorer:      uploadStorer,
+		uploadRequester:   uploadRequester,
 	}
 }
 
@@ -44,7 +47,7 @@ func (u *Uploader) Upload(ctx context.Context) error {
 		return err
 	}
 
-	err = u.streamFileUpload(ctx, sessionId, fileHash)
+	err = u.streamFileUpload(ctx, sessionId, fileHash, u.maxChunkSizeBytes)
 	return err
 }
 
@@ -61,7 +64,7 @@ func (u *Uploader) ResumeUpload(ctx context.Context) error {
 		return err
 	}
 
-	err = u.streamFileResumeUpload(ctx, sessionId, fileHash, byteRangesToUpload)
+	err = u.streamFileResumeUpload(ctx, sessionId, fileHash, u.maxChunkSizeBytes, byteRangesToUpload)
 	return err
 }
 
@@ -111,6 +114,7 @@ func (u *Uploader) streamFileUpload(
 	ctx context.Context,
 	sessionId string,
 	fileHash []byte,
+	maxChunkSizeBytes int,
 ) error {
 	bfr, err := file.NewBufferedFileReader(u.filePath)
 	if err != nil {
@@ -123,8 +127,7 @@ func (u *Uploader) streamFileUpload(
 		return err
 	}
 
-	const bufferSizeBytes = 1 << 20 // 1 MiB
-	for fileChunk, err := range bfr.ReadChunk(bufferSizeBytes) {
+	for fileChunk, err := range bfr.ReadChunk(maxChunkSizeBytes) {
 		if err != nil {
 			return err
 		}
@@ -156,6 +159,7 @@ func (u *Uploader) streamFileResumeUpload(
 	ctx context.Context,
 	sessionId string,
 	fileHash []byte,
+	maxChunkSizeBytes int,
 	byteRanges []byterange.ByteRange,
 ) error {
 	bfr, err := file.NewBufferedFileReader(u.filePath)
@@ -166,8 +170,7 @@ func (u *Uploader) streamFileResumeUpload(
 
 	totalBytesToUpload := byterange.TotalByteCount(byteRanges)
 
-	const bufferSizeBytes = 1 << 20 // 1 MiB
-	for fileChunk, err := range bfr.ReadChunkWithRange(bufferSizeBytes, byteRanges) {
+	for fileChunk, err := range bfr.ReadChunkWithRange(maxChunkSizeBytes, byteRanges) {
 		if err != nil {
 			return err
 		}

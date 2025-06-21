@@ -60,6 +60,7 @@ func main() {
 			ByteRangesToUpload:    "/my-custom-byte-ranges-to-upload-endpoint",
 			UploadFileChunk:       "/my-custom-upload-file-chunk-endpoint",
 		},
+		1<<20,
 	)
 
 	if err != nil {

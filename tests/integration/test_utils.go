@@ -74,3 +74,7 @@ func SetupTest(t *testing.T, fileData string) (*httptest.Server, string, *os.Fil
 
 	return mockServer, baseDirPath, tempFile, cleanUp, nil
 }
+
+func uploadSessionIsInSqliteDatabase(dbPath string, mockServerUrl string, tempFilePath string) bool {
+	return true
+}

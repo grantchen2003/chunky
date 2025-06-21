@@ -12,27 +12,29 @@ type Coordinator struct {
 	ctx       context.Context
 	ctxCancel context.CancelFunc
 
-	url         string
-	filePath    string
-	isUploading bool
-	storer      *us.UploadStorer
-	validator   *Validator
-	requester   *Requester
+	url               string
+	filePath          string
+	maxChunkSizeBytes int
+	isUploading       bool
+	storer            *us.UploadStorer
+	validator         *Validator
+	requester         *Requester
 }
 
-func NewCoordinator(url string, filePath string, storer us.UploadStorer, validator *Validator, requester *Requester) *Coordinator {
+func NewCoordinator(url string, filePath string, maxChunkSizeBytes int, storer us.UploadStorer, validator *Validator, requester *Requester) *Coordinator {
 	ctx, ctxCancel := context.WithCancel(context.Background())
 
 	return &Coordinator{
 		ctx:       ctx,
 		ctxCancel: ctxCancel,
 
-		url:         url,
-		filePath:    filePath,
-		isUploading: false,
-		storer:      &storer,
-		validator:   validator,
-		requester:   requester,
+		url:               url,
+		filePath:          filePath,
+		maxChunkSizeBytes: maxChunkSizeBytes,
+		isUploading:       false,
+		storer:            &storer,
+		validator:         validator,
+		requester:         requester,
 	}
 }
 
@@ -50,7 +52,7 @@ func (c *Coordinator) Upload(uploadProgressChan chan<- Progress) Result {
 	}
 
 	uploadTask := func(ctx context.Context) error {
-		uploader := NewUploader(c.url, c.filePath, uploadProgressChan, *c.storer, c.requester)
+		uploader := NewUploader(c.url, c.filePath, c.maxChunkSizeBytes, uploadProgressChan, *c.storer, c.requester)
 
 		err := uploader.Upload(ctx)
 
@@ -100,7 +102,7 @@ func (c *Coordinator) ResumeUpload(uploadProgressChan chan<- Progress) Result {
 	}
 
 	resumeUploadTask := func(ctx context.Context) error {
-		uploader := NewUploader(c.url, c.filePath, uploadProgressChan, *c.storer, c.requester)
+		uploader := NewUploader(c.url, c.filePath, c.maxChunkSizeBytes, uploadProgressChan, *c.storer, c.requester)
 
 		err := uploader.ResumeUpload(ctx)
 

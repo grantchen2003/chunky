@@ -18,6 +18,7 @@ func Test_Upload(t *testing.T) {
 	}
 	defer cleanUp()
 
+	chunkSizeBytes := 1 << 20
 	client, err := client.NewClient(
 		mockServer.URL,
 		tempFile.Name(),
@@ -26,6 +27,7 @@ func Test_Upload(t *testing.T) {
 			ByteRangesToUpload:    "/byteRangesToUpload",
 			UploadFileChunk:       "/uploadFileChunk",
 		},
+		chunkSizeBytes,
 	)
 
 	if err != nil {
@@ -53,12 +55,11 @@ func Test_Upload(t *testing.T) {
 		return
 	}
 
-	chunkSize := 1 << 20
-	for i := 0; i < len(tempFileData); i += chunkSize {
+	for i := 0; i < len(tempFileData); i += chunkSizeBytes {
 		progress := <-client.UploadProgressChan()
 
 		expectedProgress := upload.Progress{
-			UploadedBytes:      min(len(tempFileData)-i, chunkSize),
+			UploadedBytes:      min(len(tempFileData)-i, chunkSizeBytes),
 			TotalBytesToUpload: len(tempFileData),
 		}
 
@@ -113,6 +114,7 @@ func Test_UploadWithNonExistentFile(t *testing.T) {
 			ByteRangesToUpload:    "/byteRangesToUpload",
 			UploadFileChunk:       "/uploadFileChunk",
 		},
+		1<<20,
 	)
 	defer func() {
 		dbPath := filepath.Join(baseDirPath, "chunky.db")
@@ -193,6 +195,7 @@ func Test_UploadWithEmptyFile(t *testing.T) {
 			ByteRangesToUpload:    "/byteRangesToUpload",
 			UploadFileChunk:       "/uploadFileChunk",
 		},
+		1<<20,
 	)
 
 	if err != nil {
@@ -259,6 +262,7 @@ func Test_UploadIsNotBlockedByStatusChannelRead(t *testing.T) {
 	}
 	defer cleanUp()
 
+	chunkSizeBytes := 1 << 20
 	client, err := client.NewClient(
 		mockServer.URL,
 		tempFile.Name(),
@@ -267,6 +271,7 @@ func Test_UploadIsNotBlockedByStatusChannelRead(t *testing.T) {
 			ByteRangesToUpload:    "/byteRangesToUpload",
 			UploadFileChunk:       "/uploadFileChunk",
 		},
+		chunkSizeBytes,
 	)
 
 	if err != nil {
@@ -282,12 +287,11 @@ func Test_UploadIsNotBlockedByStatusChannelRead(t *testing.T) {
 		}
 	}()
 
-	chunkSize := 1 << 20
-	for i := 0; i < len(tempFileData); i += chunkSize {
+	for i := 0; i < len(tempFileData); i += chunkSizeBytes {
 		progress := <-client.UploadProgressChan()
 
 		expectedProgress := upload.Progress{
-			UploadedBytes:      min(len(tempFileData)-i, chunkSize),
+			UploadedBytes:      min(len(tempFileData)-i, chunkSizeBytes),
 			TotalBytesToUpload: len(tempFileData),
 		}
 

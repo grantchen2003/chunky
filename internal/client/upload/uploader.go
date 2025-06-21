@@ -47,7 +47,23 @@ func (u *Uploader) Upload(ctx context.Context) error {
 		return err
 	}
 
-	err = u.streamFileUpload(ctx, sessionId, fileHash, u.maxChunkSizeBytes)
+	fileSizeBytes, err := u.getFileSizeBytes()
+	if err != nil {
+		return err
+	}
+
+	if fileSizeBytes == 0 {
+		return nil
+	}
+
+	byteRange, err := byterange.NewByteRange(0, fileSizeBytes-1)
+	if err != nil {
+		return err
+	}
+
+	byteRangesToUpload := []byterange.ByteRange{byteRange}
+
+	err = u.streamFileUpload(ctx, sessionId, fileHash, byteRangesToUpload, u.maxChunkSizeBytes)
 	return err
 }
 
@@ -64,7 +80,7 @@ func (u *Uploader) ResumeUpload(ctx context.Context) error {
 		return err
 	}
 
-	err = u.streamFileResumeUpload(ctx, sessionId, fileHash, u.maxChunkSizeBytes, byteRangesToUpload)
+	err = u.streamFileUpload(ctx, sessionId, fileHash, byteRangesToUpload, u.maxChunkSizeBytes)
 	return err
 }
 
@@ -114,53 +130,8 @@ func (u *Uploader) streamFileUpload(
 	ctx context.Context,
 	sessionId string,
 	fileHash []byte,
-	maxChunkSizeBytes int,
-) error {
-	bfr, err := file.NewBufferedFileReader(u.filePath)
-	if err != nil {
-		return err
-	}
-	defer bfr.Close()
-
-	fileSizeBytes, err := u.getFileSizeBytes()
-	if err != nil {
-		return err
-	}
-
-	for fileChunk, err := range bfr.ReadChunk(maxChunkSizeBytes) {
-		if err != nil {
-			return err
-		}
-
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-		}
-
-		// Do not make this concurrent: uploading chunks in parallel would
-		// bypass the buffered reader's memory management, potentially loading
-		// the entire file into memory. Sequential uploads preserve the
-		// intended low memory footprint.
-		if err := u.uploadFileChunkWithProgress(
-			sessionId,
-			fileHash,
-			fileChunk,
-			fileSizeBytes,
-		); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (u *Uploader) streamFileResumeUpload(
-	ctx context.Context,
-	sessionId string,
-	fileHash []byte,
-	maxChunkSizeBytes int,
 	byteRanges []byterange.ByteRange,
+	maxChunkSizeBytes int,
 ) error {
 	bfr, err := file.NewBufferedFileReader(u.filePath)
 	if err != nil {

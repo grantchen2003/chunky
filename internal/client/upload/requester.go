@@ -74,16 +74,7 @@ func (r Requester) makeByteRangesToUploadRequest(sessionId string, fileHash []by
 		return nil, err
 	}
 
-	req, err := http.NewRequest("PATCH", fmt.Sprintf("%s%s", r.baseUrl, r.endpoints.ByteRangesToUpload), bytes.NewBuffer(jsonData))
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{}
-
-	resp, err := client.Do(req)
+	resp, err := http.Post(fmt.Sprintf("%s%s", r.baseUrl, r.endpoints.ByteRangesToUpload), "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +121,16 @@ func (r Requester) makeUploadFileChunkRequest(sessionId string, fileHash []byte,
 		return err
 	}
 
-	resp, err := http.Post(fmt.Sprintf("%s%s", r.baseUrl, r.endpoints.UploadFileChunk), "application/json", bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("PATCH", fmt.Sprintf("%s%s", r.baseUrl, r.endpoints.UploadFileChunk), bytes.NewBuffer(jsonData))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}

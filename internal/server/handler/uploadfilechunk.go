@@ -22,8 +22,8 @@ func NewUploadFileChunkHandler(uploadService *service.UploadService) *UploadFile
 }
 
 func (h *UploadFileChunkHandler) Handle(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Only POST method is allowed", http.StatusMethodNotAllowed)
+	if r.Method != http.MethodPatch {
+		http.Error(w, "Only PATCH method is allowed", http.StatusMethodNotAllowed)
 		return
 	}
 

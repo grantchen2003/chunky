@@ -61,6 +61,7 @@ func main() {
 			UploadFileChunk:       "/my-custom-upload-file-chunk-endpoint",
 		},
 		1<<20,
+		4,
 	)
 
 	if err != nil {

@@ -12,7 +12,7 @@ type Client struct {
 	coordinator  *upload.Coordinator
 }
 
-func NewClient(url string, filePath string, uploadEndpoints *upload.Endpoints, maxChunkSizeBytes int) (*Client, error) {
+func NewClient(url string, filePath string, uploadEndpoints *upload.Endpoints, maxChunkSizeBytes int, maxConcurrentUploads int) (*Client, error) {
 	storer, err := us.NewSqliteUploadStore()
 	if err != nil {
 		return nil, err
@@ -25,7 +25,7 @@ func NewClient(url string, filePath string, uploadEndpoints *upload.Endpoints, m
 		progressChan: make(chan upload.Progress),
 		resultChan:   make(chan upload.Result),
 		statusChan:   make(chan upload.Status),
-		coordinator:  upload.NewCoordinator(url, filePath, maxChunkSizeBytes, storer, validator, requester),
+		coordinator:  upload.NewCoordinator(url, filePath, maxChunkSizeBytes, maxConcurrentUploads, storer, validator, requester),
 	}, nil
 }
 

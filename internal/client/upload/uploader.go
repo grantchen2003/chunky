@@ -7,6 +7,7 @@ import (
 	"github.com/grantchen2003/chunky/internal/client/byterange"
 	"github.com/grantchen2003/chunky/internal/client/file"
 	us "github.com/grantchen2003/chunky/internal/client/upload/uploadstorer"
+	"github.com/grantchen2003/chunky/internal/util/workerpool"
 )
 
 type Uploader struct {
@@ -16,12 +17,14 @@ type Uploader struct {
 	progressChan      chan<- Progress
 	uploadStorer      us.UploadStorer
 	uploadRequester   *Requester
+	workerPool        *workerpool.WorkerPool
 }
 
 func NewUploader(
 	url string,
 	filePath string,
 	maxChunkSizeBytes int,
+	maxConcurrentUploads int,
 	progressChan chan<- Progress,
 	uploadStorer us.UploadStorer,
 	uploadRequester *Requester,
@@ -33,6 +36,7 @@ func NewUploader(
 		progressChan:      progressChan,
 		uploadStorer:      uploadStorer,
 		uploadRequester:   uploadRequester,
+		workerPool:        workerpool.NewWorkerPool(maxConcurrentUploads),
 	}
 }
 
@@ -141,6 +145,18 @@ func (u *Uploader) streamFileUpload(
 
 	totalBytesToUpload := byterange.TotalByteCount(byteRanges)
 
+	streamFileUploadErrorChannel := make(chan error)
+
+	go func() {
+		for result := range u.workerPool.ResultsChannel() {
+			if result.Err != nil {
+				streamFileUploadErrorChannel <- result.Err
+				return
+			}
+		}
+		streamFileUploadErrorChannel <- nil
+	}()
+
 	for fileChunk, err := range bfr.ReadChunkWithRange(maxChunkSizeBytes, byteRanges) {
 		if err != nil {
 			return err
@@ -152,21 +168,20 @@ func (u *Uploader) streamFileUpload(
 		default:
 		}
 
-		// Do not make this concurrent: uploading chunks in parallel would
-		// bypass the buffered reader's memory management, potentially loading
-		// the entire file into memory. Sequential uploads preserve the
-		// intended low memory footprint.
-		if err := u.uploadFileChunkWithProgress(
-			sessionId,
-			fileHash,
-			fileChunk,
-			totalBytesToUpload,
-		); err != nil {
-			return err
-		}
+		u.workerPool.AddJob(*workerpool.NewJob(func() (any, error) {
+			return nil, u.uploadFileChunkWithProgress(
+				sessionId,
+				fileHash,
+				fileChunk,
+				totalBytesToUpload,
+			)
+		}))
 	}
 
-	return nil
+	u.workerPool.Wait()
+
+	err = <-streamFileUploadErrorChannel
+	return err
 }
 
 func (u *Uploader) uploadFileChunkWithProgress(

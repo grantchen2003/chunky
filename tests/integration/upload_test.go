@@ -19,6 +19,7 @@ func Test_Upload(t *testing.T) {
 	defer cleanUp()
 
 	chunkSizeBytes := 1 << 20
+	maxConcurrentUploads := 5
 	client, err := client.NewClient(
 		mockServer.URL,
 		tempFile.Name(),
@@ -28,6 +29,7 @@ func Test_Upload(t *testing.T) {
 			UploadFileChunk:       "/uploadFileChunk",
 		},
 		chunkSizeBytes,
+		maxConcurrentUploads,
 	)
 
 	if err != nil {
@@ -55,12 +57,22 @@ func Test_Upload(t *testing.T) {
 		return
 	}
 
+	expectedProgress := upload.Progress{
+		UploadedBytes:      chunkSizeBytes,
+		TotalBytesToUpload: len(tempFileData),
+	}
+	expectedLastProgress := upload.Progress{
+		UploadedBytes:      len(tempFileData) % chunkSizeBytes,
+		TotalBytesToUpload: len(tempFileData),
+	}
+	receivedLastProgress := false
+
 	for i := 0; i < len(tempFileData); i += chunkSizeBytes {
 		progress := <-client.UploadProgressChan()
 
-		expectedProgress := upload.Progress{
-			UploadedBytes:      min(len(tempFileData)-i, chunkSizeBytes),
-			TotalBytesToUpload: len(tempFileData),
+		if progress == expectedLastProgress && !receivedLastProgress {
+			receivedLastProgress = true
+			continue
 		}
 
 		if progress != expectedProgress {
@@ -106,6 +118,8 @@ func Test_UploadWithNonExistentFile(t *testing.T) {
 		return
 	}
 
+	chunkSizeBytes := 1 << 20
+	maxConcurrentUploads := 5
 	client, err := client.NewClient(
 		"serverUrl",
 		"non-existent-file",
@@ -114,7 +128,8 @@ func Test_UploadWithNonExistentFile(t *testing.T) {
 			ByteRangesToUpload:    "/byteRangesToUpload",
 			UploadFileChunk:       "/uploadFileChunk",
 		},
-		1<<20,
+		chunkSizeBytes,
+		maxConcurrentUploads,
 	)
 	defer func() {
 		dbPath := filepath.Join(baseDirPath, "chunky.db")
@@ -187,6 +202,8 @@ func Test_UploadWithEmptyFile(t *testing.T) {
 	}
 	defer cleanUp()
 
+	chunkSizeBytes := 1 << 20
+	maxConcurrentUploads := 5
 	client, err := client.NewClient(
 		mockServer.URL,
 		tempFile.Name(),
@@ -195,7 +212,8 @@ func Test_UploadWithEmptyFile(t *testing.T) {
 			ByteRangesToUpload:    "/byteRangesToUpload",
 			UploadFileChunk:       "/uploadFileChunk",
 		},
-		1<<20,
+		chunkSizeBytes,
+		maxConcurrentUploads,
 	)
 
 	if err != nil {
@@ -263,6 +281,7 @@ func Test_UploadIsNotBlockedByStatusChannelRead(t *testing.T) {
 	defer cleanUp()
 
 	chunkSizeBytes := 1 << 20
+	maxConcurrentUploads := 5
 	client, err := client.NewClient(
 		mockServer.URL,
 		tempFile.Name(),
@@ -272,6 +291,7 @@ func Test_UploadIsNotBlockedByStatusChannelRead(t *testing.T) {
 			UploadFileChunk:       "/uploadFileChunk",
 		},
 		chunkSizeBytes,
+		maxConcurrentUploads,
 	)
 
 	if err != nil {
@@ -287,12 +307,22 @@ func Test_UploadIsNotBlockedByStatusChannelRead(t *testing.T) {
 		}
 	}()
 
+	expectedProgress := upload.Progress{
+		UploadedBytes:      chunkSizeBytes,
+		TotalBytesToUpload: len(tempFileData),
+	}
+	expectedLastProgress := upload.Progress{
+		UploadedBytes:      len(tempFileData) % chunkSizeBytes,
+		TotalBytesToUpload: len(tempFileData),
+	}
+	receivedLastProgress := false
+
 	for i := 0; i < len(tempFileData); i += chunkSizeBytes {
 		progress := <-client.UploadProgressChan()
 
-		expectedProgress := upload.Progress{
-			UploadedBytes:      min(len(tempFileData)-i, chunkSizeBytes),
-			TotalBytesToUpload: len(tempFileData),
+		if progress == expectedLastProgress && !receivedLastProgress {
+			receivedLastProgress = true
+			continue
 		}
 
 		if progress != expectedProgress {
